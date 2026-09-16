@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="<!--site:htmlClass-->">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,24 +7,24 @@
     <title><!--site:title--></title>
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/src/styles.css" />
+<!--site:headScript-->
   </head>
-  <body class="<!--site:bodyClass-->">
-<!--site:bodyScript-->
-    <a class="skip" href="#main">Skip to content</a>
-    <header class="site-header">
-      <div class="wrap">
-        <a class="brand" href="<!--site:home-->">UI library comparison</a>
+  <body class="min-h-screen antialiased">
+    <a class="sr-only rounded-md bg-background px-3 py-2 text-sm font-medium focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-10" href="#main">Skip to content</a>
+    <header class="border-b">
+      <div class="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-2.5">
+        <a class="flex items-center gap-2 text-sm font-semibold tracking-tight" href="<!--site:home-->"><span class="inline-block size-5 rounded-md bg-foreground" aria-hidden="true"></span>UI library comparison</a>
         <nav aria-label="Site">
-          <ul role="list"><!--site:nav--></ul>
+          <ul role="list" class="flex flex-wrap gap-1"><!--site:nav--></ul>
         </nav>
       </div>
     </header>
-    <main id="main" class="wrap">
+    <main id="main" class="mx-auto max-w-[1320px] px-4 pt-6 pb-4">
 <!--site:content-->
     </main>
-    <footer class="site-footer">
-      <div class="wrap">
-        <p>A static build of the numbers in <code>results/</code>. Nothing on this site is scored or ranked, and no figure is typed by hand.</p>
+    <footer class="mt-12 border-t">
+      <div class="mx-auto max-w-[1320px] px-4 py-6 text-sm text-muted-foreground">
+        <p>A static build of the numbers in <code class="font-mono">results/</code>. Nothing on this site is scored or ranked, and no figure is typed by hand.</p>
       </div>
     </footer>
   </body>

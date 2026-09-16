@@ -38,7 +38,7 @@ How it is used:
 - Charts stay inline SVG written here, colored with shadcn's chart tokens. The shadcn chart component depends on Recharts rendering in the browser, which a static page does not do, and a horizontal bar per build still does not need a library.
 - The build-time markdown converter stays. Its output is styled with Tailwind's typography plugin or equivalent hand written rules.
 
-Dependencies beyond that set (React, React DOM, Tailwind and its Vite plugin, the shadcn CLI's own dependencies such as `class-variance-authority`, `clsx`, `tailwind-merge` and Radix primitives, and the markdown converter) are an owner call.
+Dependencies beyond that set (React, React DOM, Tailwind and its Vite plugin, the shadcn CLI's own dependencies such as `class-variance-authority`, `clsx`, `tailwind-merge` and Radix primitives, and the markdown converter) are an owner call. The owner approved four more on 2026-09-16, all brought in by the shadcn CLI: `lucide-react` for icons, rendered as static SVG, `tw-animate-css`, the `shadcn` package for its Tailwind base styles, and the self-hosted Geist font.
 
 ## 4. Where it lives
 

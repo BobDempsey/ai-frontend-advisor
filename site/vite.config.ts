@@ -3,14 +3,18 @@
  *
  * Every view is its own static HTML file, generated here at build time from
  * `results/`, `scripts/roster.ts`, and the two markdown files. `index.html` is
- * the shell every page shares; the plugin below fills it per page and hands
- * Vite one HTML entry per view, so the output is plain files with relative
- * links. The one script is the scoreboard's inline theme toggle, see `src/theme.ts`. `base: './'` keeps every asset URL relative, so the
- * folder deploys to any host at any path.
+ * the shell every page shares; the plugin below fills it per page with markup
+ * that `src/pages.tsx` renders from React components, and hands Vite one HTML
+ * entry per view, so the output is plain files with relative links. React runs
+ * here only and never ships. The one script is the scoreboard's inline theme
+ * toggle, see `src/theme.ts`. Tailwind compiles `src/styles.css` into the one
+ * stylesheet. `base: './'` keeps every asset URL relative, so the folder
+ * deploys to any host at any path.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, type Plugin } from 'vite';
 import { loadSiteData, type SiteData } from './src/data';
 import { allPages, nav, relFor, type Page } from './src/pages';
@@ -34,8 +38,9 @@ function fill(shell: string, page: Page): string {
     nav: nav(page),
     home: relFor(page.path) || './',
     content: page.body,
-    bodyClass: page.theme === 'auto' ? 'theme-auto' : 'theme-light',
-    bodyScript: page.theme === 'auto' ? THEME_SCRIPT : '',
+    // Only the scoreboard may turn dark, site spec section 7.
+    htmlClass: page.theme === 'auto' ? 'theme-auto' : 'theme-light',
+    headScript: page.theme === 'auto' ? THEME_SCRIPT : '',
   };
   return shell.replace(/<!--site:(\w+)-->/g, (_, name: string) => {
     const value = slots[name];
@@ -111,7 +116,7 @@ export default defineConfig({
   root: siteDir,
   base: './',
   appType: 'mpa',
-  plugins: [sitePages()],
+  plugins: [sitePages(), tailwindcss()],
   server: { port: 5190, strictPort: true },
   build: { outDir: 'dist', emptyOutDir: true, target: 'es2022', sourcemap: false },
 });

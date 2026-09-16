@@ -13,7 +13,9 @@
  * - a view other than the scoreboard turns dark, or the scoreboard does not
  *   (site spec section 12)
  * - the scoreboard's theme toggle does not switch, report, or remember the
- *   reader's choice
+ *   reader's choice, or the `dark` class on <html> disagrees with the paint
+ * - without script, the scoreboard stops following the system scheme or
+ *   shows the toggle
  * - a route scrolls sideways at 375px wide
  * - the first scoreboard row's numbers sit below the fold at 1440x900
  * - a focused control on the scoreboard has no visible outline
@@ -49,6 +51,25 @@ interface AxeResult {
  * would answer it the same way.
  */
 const isFaviconProbe = (url: string) => new URL(url).pathname === '/favicon.ico';
+
+/**
+ * Whether the page's body background is dark. Runs in the page. Tailwind v4
+ * and shadcn's tokens are oklch, which Chrome reports as `oklch(...)` rather
+ * than `rgb(...)`, so the color is painted on a canvas and read back as sRGB.
+ * The `dark` class on <html>, shadcn's switch, must agree with the paint.
+ */
+function pageTheme(): { dark: boolean; darkClass: boolean } {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('no canvas context');
+  ctx.fillStyle = getComputedStyle(document.body).backgroundColor;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r = 255, g = 255, b = 255] = ctx.getImageData(0, 0, 1, 1).data;
+  return { dark: r + g + b < 255, darkClass: document.documentElement.classList.contains('dark') };
+}
+const PAGE_THEME = `(${pageTheme.toString()})()`;
 
 const failures: string[] = [];
 const fail = (message: string) => {
@@ -106,12 +127,10 @@ async function checkRoute(browser: Browser, route: string): Promise<void> {
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       if (overflow > 0) fail(`${label} scrolls sideways by ${overflow}px`);
 
-      const dark = await page.evaluate(() => {
-        const [r, g, b] = (getComputedStyle(document.body).backgroundColor.match(/\d+/g) ?? []).map(Number);
-        return (r ?? 255) + (g ?? 255) + (b ?? 255) < 255;
-      });
+      const { dark, darkClass } = await page.evaluate<[], () => ReturnType<typeof pageTheme>>(PAGE_THEME);
       const shouldBeDark = scheme === 'dark' && route === '/';
       if (dark !== shouldBeDark) fail(`${label}: page is ${dark ? 'dark' : 'light'}, expected ${shouldBeDark ? 'dark' : 'light'}`);
+      if (darkClass !== shouldBeDark) fail(`${label}: <html> ${darkClass ? 'has' : 'lacks'} the dark class`);
 
       const violations = await axe(page);
       const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
@@ -180,22 +199,24 @@ async function checkThemeToggle(browser: Browser): Promise<void> {
     await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(String(e)));
-    const state = () =>
-      page.evaluate(() => {
-        const [r, g, b] = (getComputedStyle(document.body).backgroundColor.match(/\d+/g) ?? []).map(Number);
-        const button = document.querySelector<HTMLButtonElement>('.theme-toggle');
+    const state = async () => {
+      const theme = await page.evaluate<[], () => ReturnType<typeof pageTheme>>(PAGE_THEME);
+      const button = await page.evaluate(() => {
+        const el = document.querySelector<HTMLButtonElement>('.theme-toggle');
         return {
-          dark: (r ?? 255) + (g ?? 255) + (b ?? 255) < 255,
-          visible: Boolean(button && !button.hidden),
-          pressed: button?.getAttribute('aria-pressed'),
+          visible: Boolean(el && !el.hidden && el.getBoundingClientRect().width > 0),
+          pressed: el?.getAttribute('aria-pressed'),
         };
       });
+      // The paint and shadcn's class must agree, or one of them is lying.
+      return { dark: theme.dark && theme.darkClass, painted: theme.dark, ...button };
+    };
     await page.goto(`${ORIGIN}/`, { waitUntil: 'networkidle0' });
     await page.evaluate(() => localStorage.clear());
     await page.reload({ waitUntil: 'networkidle0' });
     const start = await state();
     if (!start.visible) fail('/: the theme toggle is hidden');
-    if (start.dark || start.pressed !== 'false') fail(`/: toggle starts ${JSON.stringify(start)} under a light system scheme`);
+    if (start.dark || start.painted || start.pressed !== 'false') fail(`/: toggle starts ${JSON.stringify(start)} under a light system scheme`);
     await page.click('.theme-toggle');
     const flipped = await state();
     if (!flipped.dark || flipped.pressed !== 'true') fail(`/: toggle click left ${JSON.stringify(flipped)}`);
@@ -204,11 +225,38 @@ async function checkThemeToggle(browser: Browser): Promise<void> {
     if (!kept.dark || kept.pressed !== 'true') fail(`/: dark choice not kept after reload, ${JSON.stringify(kept)}`);
     await page.click('.theme-toggle');
     const back = await state();
-    if (back.dark || back.pressed !== 'false') fail(`/: second click left ${JSON.stringify(back)}`);
+    if (back.dark || back.painted || back.pressed !== 'false') fail(`/: second click left ${JSON.stringify(back)}`);
     await page.evaluate(() => localStorage.clear());
     if (errors.length > 0) fail(`/: script errors ${errors.join('; ')}`);
     console.log('  /: toggle switches to dark, survives a reload, and switches back');
   });
+}
+
+/**
+ * Site spec section 7: without its script the scoreboard still follows the
+ * system scheme and the toggle stays hidden. Other views stay light.
+ */
+async function checkNoScript(browser: Browser): Promise<void> {
+  for (const route of ['/', '/write-up/']) {
+    for (const scheme of ['light', 'dark'] as const) {
+      await withPage(browser, 1440, 900, async (page) => {
+        await page.setJavaScriptEnabled(false);
+        await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]);
+        await page.goto(`${ORIGIN}${route}`, { waitUntil: 'networkidle0' });
+        // Script is off in the page, but puppeteer's evaluate still runs.
+        const { dark } = await page.evaluate<[], () => ReturnType<typeof pageTheme>>(PAGE_THEME);
+        const toggleShown = await page.evaluate(() => {
+          const el = document.querySelector<HTMLElement>('.theme-toggle');
+          return Boolean(el && el.getBoundingClientRect().width > 0);
+        });
+        const shouldBeDark = scheme === 'dark' && route === '/';
+        const label = `${route} without script, ${scheme}`;
+        if (dark !== shouldBeDark) fail(`${label}: page is ${dark ? 'dark' : 'light'}, expected ${shouldBeDark ? 'dark' : 'light'}`);
+        if (toggleShown) fail(`${label}: the toggle shows with no script to drive it`);
+        console.log(`  ${label}: ${dark ? 'dark' : 'light'}, toggle ${toggleShown ? 'shown' : 'hidden'}`);
+      });
+    }
+  }
 }
 
 async function checkScreen(browser: Browser, build: string): Promise<void> {
@@ -261,6 +309,8 @@ async function main(): Promise<void> {
     await checkFold(browser);
     console.log('theme toggle');
     await checkThemeToggle(browser);
+    console.log('theme without script');
+    await checkNoScript(browser);
     console.log('keyboard');
     for (const route of ['/', `/builds/${builds[0]}/`, '/write-up/']) await checkKeyboard(browser, route);
     if (withScreens) {

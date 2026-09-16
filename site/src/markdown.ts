@@ -10,7 +10,7 @@
  */
 import { Marked, type Token, type Tokens } from 'marked';
 import { ROSTER } from '../../scripts/roster';
-import { detailHref, esc } from './html';
+import { detailHref, esc, kindTag } from './html';
 
 export interface Converted {
   html: string;
@@ -100,7 +100,7 @@ export function convert(source: string, options: ConvertOptions): Converted {
         return html.replace(LIBRARY_PATTERN, (name: string) => {
           const lib = LIBRARIES.find((l) => l.library === name);
           if (!lib) return name;
-          const tag = flag.kitTag && lib.kit ? ` <span class="kind kind-assembly-kit">assembly kit</span>` : '';
+          const tag = flag.kitTag && lib.kit ? ` ${kindTag('assembly-kit')}` : '';
           return `<a href="${detailHref(options.rel, lib.build)}">${name}</a>${tag}`;
         });
       },
@@ -128,7 +128,7 @@ export function convert(source: string, options: ConvertOptions): Converted {
     .parser(tokens)
     .replace(/<table>/g, () => {
       tables += 1;
-      return `<div class="table-wrap" role="region" tabindex="0" aria-label="Table ${tables}"><table>`;
+      return `<div class="my-6 overflow-x-auto rounded-lg border" role="region" tabindex="0" aria-label="Table ${tables}"><table>`;
     })
     .replace(/<\/table>/g, '</table></div>')
     .replace(/<pre>/g, '<pre tabindex="0">');
