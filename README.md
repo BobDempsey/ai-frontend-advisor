@@ -2,6 +2,8 @@
 
 Eight UI libraries build the same `/tickets` screen, so they can be compared on ergonomics, bundle size, and accessibility defaults. The spec in [`spec/screen-spec.md`](spec/screen-spec.md) is the fixed input, and a library that cannot meet a requirement fails it rather than changing it.
 
+The results, the write-up, and the spec are published at [ui-library-comparison.bobdempsey83.com](https://ui-library-comparison.bobdempsey83.com). The eight live demos are [Headless UI](https://ui-library-comparison.bobdempsey83.com/screens/react-headless/), [shadcn/ui](https://ui-library-comparison.bobdempsey83.com/screens/react-shadcn/), [Material UI](https://ui-library-comparison.bobdempsey83.com/screens/react-mui/), [Quasar](https://ui-library-comparison.bobdempsey83.com/screens/vue-quasar/), [Chakra UI](https://ui-library-comparison.bobdempsey83.com/screens/react-chakra/), [Vuetify](https://ui-library-comparison.bobdempsey83.com/screens/vue-vuetify/), [PrimeVue](https://ui-library-comparison.bobdempsey83.com/screens/vue-primevue/), and [Ant Design](https://ui-library-comparison.bobdempsey83.com/screens/react-antd/).
+
 This is sample content for a demo. The domain, the data, and the numbers are fictional.
 
 ## Results
