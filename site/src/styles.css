@@ -1,6 +1,7 @@
 /*
- * Hand written, no framework, per site spec section 3. Light only, matching the
- * screen spec. Color marks framework and nothing else: React is blue, Vue is
+ * Hand written, no framework, per site spec section 3. Light, matching the
+ * screen spec, except the scoreboard, which follows the reader's system color
+ * scheme (site spec section 12). Color marks framework and nothing else: React is blue, Vue is
  * green, and neither color means good or bad.
  */
 :root {
@@ -17,6 +18,24 @@
   --vue-light: #b0d8c2;
   --measure: 72ch;
   color-scheme: light;
+}
+
+/* The scoreboard only. Every color on the site is one of the tokens above. */
+@media (prefers-color-scheme: dark) {
+  body.theme-auto {
+    --ink: #ececec;
+    --muted: #b8b8b8;
+    --line: #3d3d3d;
+    --paper: #141414;
+    --panel: #1f1f1f;
+    --link: #8fbcf5;
+    --focus: #ececec;
+    --react: #6aa6e6;
+    --react-light: #2d4a6b;
+    --vue: #5cc08c;
+    --vue-light: #245a3e;
+    color-scheme: dark;
+  }
 }
 
 *,
@@ -647,4 +666,22 @@ tr.group th {
   h1 {
     font-size: 1.625rem;
   }
+}
+
+.tldr {
+  max-width: var(--measure);
+  margin: 0 0 16px;
+  padding: 8px 16px;
+  background: var(--panel);
+  border-left: 4px solid var(--ink);
+}
+
+.tldr h2 {
+  font-size: 1.125rem;
+  margin: 4px 0;
+}
+
+.tldr ul {
+  margin: 0 0 4px;
+  padding-left: 20px;
 }

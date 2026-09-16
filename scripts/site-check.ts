@@ -8,7 +8,10 @@
  * fresh `chrome-launcher` Chrome with `puppeteer-core`, the same pair the
  * screenshot and Lighthouse runners use. It fails on any of these:
  *
- * - axe-core reports a serious or critical violation on any site route
+ * - axe-core reports a serious or critical violation on any site route, in
+ *   either system color scheme
+ * - a view other than the scoreboard turns dark, or the scoreboard does not
+ *   (site spec section 12)
  * - a route scrolls sideways at 375px wide
  * - the first scoreboard row's numbers sit below the fold at 1440x900
  * - a focused control on the scoreboard has no visible outline
@@ -72,11 +75,15 @@ async function axe(page: Page): Promise<AxeResult[]> {
 
 async function checkRoute(browser: Browser, route: string): Promise<void> {
   const url = `${ORIGIN}${route}`;
-  for (const [width, height] of [
-    [1440, 900],
-    [375, 812],
+  for (const [width, height, scheme] of [
+    [1440, 900, 'light'],
+    [375, 812, 'light'],
+    [1440, 900, 'dark'],
+    [375, 812, 'dark'],
   ] as const) {
     await withPage(browser, width, height, async (page) => {
+      await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]);
+      const label = `${route} at ${width}px ${scheme}`;
       const bad: string[] = [];
       page.on('response', (r) => {
         if (r.status() >= 400 && !isFaviconProbe(r.url())) bad.push(`${r.status()} ${r.url()}`);
@@ -92,19 +99,26 @@ async function checkRoute(browser: Browser, route: string): Promise<void> {
         window.scrollTo(0, 0);
       });
       await page.waitForNetworkIdle({ idleTime: 200 });
-      if (bad.length > 0) fail(`${route} at ${width}px: ${bad.join(', ')}`);
+      if (bad.length > 0) fail(`${label}: ${bad.join(', ')}`);
 
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      if (overflow > 0) fail(`${route} at ${width}px scrolls sideways by ${overflow}px`);
+      if (overflow > 0) fail(`${label} scrolls sideways by ${overflow}px`);
+
+      const dark = await page.evaluate(() => {
+        const [r, g, b] = (getComputedStyle(document.body).backgroundColor.match(/\d+/g) ?? []).map(Number);
+        return (r ?? 255) + (g ?? 255) + (b ?? 255) < 255;
+      });
+      const shouldBeDark = scheme === 'dark' && route === '/';
+      if (dark !== shouldBeDark) fail(`${label}: page is ${dark ? 'dark' : 'light'}, expected ${shouldBeDark ? 'dark' : 'light'}`);
 
       const violations = await axe(page);
       const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
       const other = violations.filter((v) => !blocking.includes(v));
       for (const v of blocking) {
-        fail(`${route} at ${width}px: axe ${v.impact} ${v.id} (${v.help}) on ${v.nodes.map((n) => n.target.join(' ')).join('; ')}`);
+        fail(`${label}: axe ${v.impact} ${v.id} (${v.help}) on ${v.nodes.map((n) => n.target.join(' ')).join('; ')}`);
       }
       const note = other.length > 0 ? `, minor or moderate: ${other.map((v) => `${v.id}`).join(', ')}` : '';
-      console.log(`  ${route} at ${width}px: axe serious or critical ${blocking.length}${note}`);
+      console.log(`  ${label}: axe serious or critical ${blocking.length}${note}`);
     });
   }
 }

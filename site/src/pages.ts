@@ -31,6 +31,11 @@ export interface Page {
   nav: 'scoreboard' | 'write-up' | 'spec' | 'build';
   /** HTML for the main landmark. */
   body: string;
+  /**
+   * `auto` follows the reader's system color scheme. Site spec section 12
+   * allows that on the scoreboard only; every other view stays light.
+   */
+  theme?: 'auto';
 }
 
 /** Relative prefix from a page's folder back to the site root. */
@@ -82,6 +87,41 @@ function scoreboardRow(build: Build, budgetKb: number): string {
 </tr>`;
 }
 
+/**
+ * The scoreboard's short summary. Every figure is read from the result files,
+ * and nothing here names a winner or ranks all eight on anything but delta.
+ */
+function summary(data: SiteData): string {
+  const count = data.builds.length;
+  const passing = data.builds.filter((b) => b.result.criteria.failed === 0);
+  const criteriaTotal = Math.max(...data.builds.map((b) => b.result.criteria.passed + b.result.criteria.failed));
+  const byDelta = [...data.builds].sort((a, b) => a.result.bundle.deltaGzipKb - b.result.bundle.deltaGzipKb);
+  const lightest = byDelta[0];
+  const heaviest = byDelta[byDelta.length - 1];
+  const over = data.builds.filter((b) => b.result.bundle.overBudget);
+  const fcp = data.builds.map((b) => b.result.render.lighthouseFcpMsMedian);
+  if (!lightest || !heaviest) throw new Error('the scoreboard summary needs at least one build');
+  const names = (builds: Build[]) => builds.map((b) => esc(b.roster.library)).join(', ');
+  const passLine =
+    passing.length === count
+      ? `All ${esc(count)} builds pass all ${esc(criteriaTotal)} shared criteria.`
+      : `${esc(passing.length)} of ${esc(count)} builds pass all ${esc(criteriaTotal)} shared criteria.`;
+  const overLine =
+    over.length === 0
+      ? `All ${esc(count)} fit the ${esc(budgetText(data.budgetKb))} total budget.`
+      : `${esc(over.length)} of ${esc(count)} ${over.length === 1 ? 'is' : 'are'} over the ${esc(budgetText(data.budgetKb))} total budget: ${names(over)}.`;
+  return `<section class="tldr" aria-labelledby="tldr-heading">
+<h2 id="tldr-heading">TL;DR</h2>
+<ul>
+<li>${passLine}</li>
+<li>Library cost over the framework baseline runs from ${esc(kb(lightest.result.bundle.deltaGzipKb))} (${esc(lightest.roster.library)}) to ${esc(kb(heaviest.result.bundle.deltaGzipKb))} (${esc(heaviest.roster.library)}), gzipped.</li>
+<li>${overLine}</li>
+<li>Median first render runs from ${esc(ms(Math.min(...fcp)))} to ${esc(ms(Math.max(...fcp)))}.<a class="note-ref" href="#render-note" aria-label="Note on first render">*</a></li>
+<li>No winner. Assembly kits trade application code for bundle size, and suites ship more finished parts; the <a href="write-up/">write-up</a> says which fits when.</li>
+</ul>
+</section>`;
+}
+
 export function scoreboard(data: SiteData): Page {
   const columns = 8;
   const groups = data.groups
@@ -95,6 +135,7 @@ ${group.builds.map((b) => scoreboardRow(b, data.budgetKb)).join('\n')}
 
   const body = `<h1>Scoreboard</h1>
 <p class="lede">${esc(data.builds.length)} UI libraries built the same <code>/tickets</code> screen against one spec. Every figure here is read from <code>results/</code> in the repo. There is no overall score and no winner; the <a href="write-up/">write-up</a> picks per situation.</p>
+${summary(data)}
 <div class="table-wrap" role="region" aria-labelledby="scoreboard-caption" tabindex="0">
 <table class="scoreboard">
 <caption id="scoreboard-caption">The ${esc(data.builds.length)} builds in two groups, React and Vue, each ordered by gzipped delta, smallest first. The delta is the only figure compared across groups.</caption>
@@ -121,6 +162,7 @@ ${categoryCharts(data, '', renderCaveat(data.builds))}`;
     description: 'Eight UI libraries, one screen: bundle size, accessibility defaults, ergonomics, and first render.',
     nav: 'scoreboard',
     body,
+    theme: 'auto',
   };
 }
 

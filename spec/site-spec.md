@@ -103,6 +103,10 @@ Four, and no more without an owner deciding.
 
 Each row carries its 1440px screenshot as a thumbnail in the first column, about 160px wide, `loading="lazy"`, with the build name as its `alt` text. That is a thumbnail and nothing more: it does not push the numbers below the fold, it does not become a card grid, and the eight rows still read as one table a reader can scan top to bottom. Clicking it opens the live screen. Hovering or focusing it is allowed to show a larger preview, and that preview must not be the only way to reach the full image.
 
+Above the table, a short TL;DR summarizes the run: how many builds pass the criteria, the range of deltas with the library at each end, which builds are over budget, and the range of first render medians with its caveat. Every figure in it is computed from `results/` at build time. It names no winner.
+
+The scoreboard, and only the scoreboard, follows the reader's system color scheme, light or dark, with no script and no toggle. Every other view, and every build screen, stays light. The dark colors meet the same contrast bar as the light ones, and framework is still the only thing color carries. Added 2026-09-16 at the owner's request.
+
 **Build detail, `/builds/<build>/`.** One build, every field of its result file, its `handBuilt` three, its failed criterion numbers when there are any, both screenshots at full size side by side with their widths labeled, a link to its live screen, and a link to its folder on GitHub. This is the view that lets a reader check a claim, so it is the one place the pictures get room.
 
 **Write-up, `/write-up/`.** `write-up/README.md` as HTML, with its own headings linked from a contents list. Where the prose names a library, the name links to that build's detail view. The prose is not rewritten for the web and not summarized.
@@ -169,7 +173,7 @@ The site is done when all of these hold. They are checkable, in the same spirit 
 
 ## 12. Out of scope
 
-No server, no database, no search, no user accounts, no comments, and no analytics. No dark mode, matching the screen spec. No responsive work below 375px, which is the narrow width the builds were already reviewed at. No live rerun of anything: the site displays a scoring run, it does not perform one. No editing of the write-up's prose to fit a layout.
+No server, no database, no search, no user accounts, no comments, and no analytics. No dark mode, matching the screen spec, except on the scoreboard (section 7). No responsive work below 375px, which is the narrow width the builds were already reviewed at. No live rerun of anything: the site displays a scoring run, it does not perform one. No editing of the write-up's prose to fit a layout.
 
 ## 13. Open decisions
 

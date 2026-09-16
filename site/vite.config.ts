@@ -33,6 +33,7 @@ function fill(shell: string, page: Page): string {
     nav: nav(page),
     home: relFor(page.path) || './',
     content: page.body,
+    bodyClass: page.theme === 'auto' ? 'theme-auto' : 'theme-light',
   };
   return shell.replace(/<!--site:(\w+)-->/g, (_, name: string) => {
     const value = slots[name];
