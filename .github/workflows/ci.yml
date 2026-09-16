@@ -24,6 +24,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      # Report only. The builds were scored as written, and reformatting them
+      # would move the line counts the comparison publishes, so findings show
+      # in the log without failing the run. See handoff.md section 6.
+      - name: biome lint and format, report only
+        continue-on-error: true
+        run: |
+          status=0
+          pnpm lint || status=1
+          pnpm format:check || status=1
+          exit $status
       - name: fixture assumptions still hold
         run: pnpm fixture:check
       - name: tickets.json matches the seed

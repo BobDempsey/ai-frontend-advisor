@@ -15,6 +15,8 @@
     "fixture:generate": "tsx packages/fixture/src/generate.ts && tsx scripts/check-fixture.ts",
     "fixture:check": "tsx scripts/check-fixture.ts",
     "typecheck": "tsc --noEmit -p packages/fixture/tsconfig.json && tsc --noEmit -p packages/harness/tsconfig.json && tsc --noEmit -p packages/criteria/tsconfig.json && tsc --noEmit -p site/tsconfig.json",
+    "lint": "biome lint builds",
+    "format:check": "biome format builds",
     "new-build": "tsx scripts/new-build.ts",
     "screenshots": "tsx scripts/screenshots.ts"
   },
