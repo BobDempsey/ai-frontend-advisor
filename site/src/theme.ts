@@ -1,8 +1,8 @@
 /**
  * The scoreboard's light and dark toggle, inlined as a classic script in the
  * scoreboard's `<head>` so the right class is on `<html>` before first paint.
- * Site spec section 7. It is the only script on the site, so it stays small
- * and does nothing a static page needs.
+ * Site spec section 7. Apart from the chat island, it is the only script on
+ * the site, so it stays small and does nothing a static page needs.
  *
  * It follows shadcn's approach: `dark` on the root element turns the dark
  * tokens and every `dark:` variant on. With nothing stored it applies the

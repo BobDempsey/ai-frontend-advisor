@@ -5,9 +5,11 @@
  * `results/`, `scripts/roster.ts`, and the two markdown files. `index.html` is
  * the shell every page shares; the plugin below fills it per page with markup
  * that `src/pages.tsx` renders from React components, and hands Vite one HTML
- * entry per view, so the output is plain files with relative links. React runs
- * here only and never ships. The one script is the scoreboard's inline theme
- * toggle, see `src/theme.ts`. Tailwind compiles `src/styles.css` into the one
+ * entry per view, so the output is plain files with relative links. The pages
+ * are rendered here and never hydrate. Two scripts ship: the scoreboard's
+ * inline theme toggle, see `src/theme.ts`, and the chat island every page
+ * loads from `src/chat/main.tsx`, which mounts its own React root on the
+ * shell's `#chat-root` and posts to `/api/chat/`. Tailwind compiles `src/styles.css` into the one
  * stylesheet. `base: './'` keeps every asset URL relative, so the folder
  * deploys to any host at any path.
  */
@@ -118,6 +120,8 @@ export default defineConfig({
   base: './',
   appType: 'mpa',
   plugins: [sitePages(), tailwindcss()],
+  // The shadcn components import each other through `@/`, as site/tsconfig.json maps it.
+  resolve: { alias: { '@': join(siteDir, 'src') } },
   server: { port: 5190, strictPort: true },
   build: { outDir: 'dist', emptyOutDir: true, target: 'es2022', sourcemap: false },
 });

@@ -4,5 +4,11 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm site:build && pnpm site:screens",
   "outputDirectory": "site/dist",
-  "trailingSlash": true
+  "trailingSlash": true,
+  "functions": {
+    "api/chat.ts": {
+      "maxDuration": 60,
+      "includeFiles": "{write-up/README.md,spec/screen-spec.md,results/*.json}"
+    }
+  }
 }

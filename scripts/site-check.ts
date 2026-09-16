@@ -19,6 +19,10 @@
  * - a route scrolls sideways at 375px wide
  * - the first scoreboard row's numbers sit below the fold at 1440x900
  * - a focused control on the scoreboard has no visible outline
+ * - the chat island, on the scoreboard and two other views, does not open
+ *   and close from the keyboard, return focus to its button, pass axe while
+ *   open, follow the page's theme, or render a stubbed answer safely
+ *   (`/api/chat/` is intercepted, so no model is called)
  * - one of the eight screens under `/screens/<build>/` fails to load an asset
  *   or never paints its 25 rows (skipped with `--no-screens`)
  */
@@ -259,6 +263,168 @@ async function checkNoScript(browser: Browser): Promise<void> {
   }
 }
 
+/** The stubbed answer. The image tag must not render: the chat allows no raw HTML. */
+const CHAT_STUB_REPLY = 'Take a suite, see [the write-up](/write-up/). <img src="x" class="raw-html-leak">';
+
+/**
+ * Whether the element under `selector` paints a dark background. Runs in the
+ * page, the same canvas read as `pageTheme`.
+ */
+function elementDark(selector: string): boolean | null {
+  const el = document.querySelector(selector);
+  if (!el) return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('no canvas context');
+  ctx.fillStyle = getComputedStyle(el).backgroundColor;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r = 255, g = 255, b = 255] = ctx.getImageData(0, 0, 1, 1).data;
+  return r + g + b < 255;
+}
+
+const activeMatches = (page: Page, selector: string) =>
+  page.evaluate((s) => Boolean(document.activeElement?.matches(s)), selector);
+
+/**
+ * Site spec section 14: the chat island opens and closes from the keyboard,
+ * returns focus to its button, passes axe while open, follows the page's
+ * theme, renders a stubbed answer's link without its raw HTML, and keeps the
+ * conversation across a reload. `/api/chat/` is intercepted, so no model runs.
+ */
+async function checkChat(browser: Browser, route: string, width: number, height: number, scheme: 'light' | 'dark'): Promise<void> {
+  const label = `${route} chat at ${width}px ${scheme}`;
+  await withPage(browser, width, height, async (page) => {
+    await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]);
+    const errors: string[] = [];
+    const sent: { method: string; body: unknown }[] = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname.startsWith('/api/chat')) {
+        let body: unknown;
+        try {
+          body = JSON.parse(request.postData() ?? '');
+        } catch {
+          body = request.postData();
+        }
+        sent.push({ method: request.method(), body });
+        void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ reply: CHAT_STUB_REPLY }) });
+      } else {
+        void request.continue();
+      }
+    });
+
+    await page.goto(`${ORIGIN}${route}`, { waitUntil: 'networkidle0' });
+    await page.evaluate(() => sessionStorage.clear());
+    await page.waitForSelector('.chat-toggle', { visible: true, timeout: 10000 });
+
+    const open = async () => {
+      await page.focus('.chat-toggle');
+      await page.keyboard.press('Enter');
+      await page.waitForSelector('[role="dialog"]', { visible: true, timeout: 5000 });
+      // Let the slide-in finish before anything is measured.
+      await page.evaluate(async () => {
+        const dialog = document.querySelector('[role="dialog"]');
+        await Promise.all((dialog?.getAnimations({ subtree: true }) ?? []).map((a) => a.finished.catch(() => undefined)));
+      });
+      // Radix focuses after its open animation frame.
+      await page.waitForFunction(() => document.activeElement?.id === 'chat-input', { timeout: 5000 }).catch(() => undefined);
+    };
+    const close = async () => {
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('[role="dialog"]', { hidden: true, timeout: 5000 });
+      await page.waitForFunction(() => document.activeElement?.classList.contains('chat-toggle'), { timeout: 5000 }).catch(() => undefined);
+    };
+
+    await open();
+    if (!(await activeMatches(page, '#chat-input'))) fail(`${label}: opening does not focus the question field`);
+    const shape = await page.evaluate(() => {
+      const dialog = document.querySelector('[role="dialog"]');
+      const rect = dialog?.getBoundingClientRect();
+      const log = document.querySelector('.chat-log');
+      return {
+        labelled: document.querySelector('label[for="chat-input"]')?.textContent?.trim() ?? '',
+        live: log?.getAttribute('aria-live'),
+        rect: rect ? `${Math.round(rect.left)} to ${Math.round(rect.right)} of ${document.documentElement.clientWidth}` : 'none',
+        inViewport: Boolean(rect && rect.left >= 0 && rect.right <= document.documentElement.clientWidth + 0.5),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    if (!shape.labelled) fail(`${label}: the question field has no <label>`);
+    if (shape.live !== 'polite') fail(`${label}: the message list has aria-live="${shape.live}"`);
+    if (!shape.inViewport) fail(`${label}: the drawer does not fit the viewport, it spans ${shape.rect}`);
+    if (shape.overflow > 0) fail(`${label}: the open drawer scrolls the page sideways by ${shape.overflow}px`);
+
+    const dark = await page.evaluate(elementDark, '[role="dialog"]');
+    const shouldBeDark = scheme === 'dark' && route === '/';
+    if (dark !== shouldBeDark) fail(`${label}: drawer is ${dark ? 'dark' : 'light'}, expected ${shouldBeDark ? 'dark' : 'light'}`);
+
+    const violations = await axe(page);
+    const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+    for (const v of blocking) {
+      fail(`${label}: axe with the drawer open, ${v.impact} ${v.id} (${v.help}) on ${v.nodes.map((n) => n.target.join(' ')).join('; ')}`);
+    }
+
+    // Shift+Enter adds a line and sends nothing.
+    await page.type('#chat-input', 'first');
+    await page.keyboard.down('Shift');
+    await page.keyboard.press('Enter');
+    await page.keyboard.up('Shift');
+    await page.type('#chat-input', 'second');
+    const multiline = await page.$eval('#chat-input', (el) => (el as HTMLTextAreaElement).value);
+    if (multiline !== 'first\nsecond' || sent.length > 0) fail(`${label}: Shift+Enter gave ${JSON.stringify(multiline)} and ${sent.length} requests`);
+    await page.$eval('#chat-input', (el) => {
+      const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
+      setter?.call(el, '');
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    // Enter sends one message and the stubbed answer renders as markdown.
+    await page.type('#chat-input', 'What should I use for my blog?');
+    await page.keyboard.press('Enter');
+    const answered = await page
+      .waitForSelector('.chat-answer a[href="/write-up/"]', { timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!answered) fail(`${label}: the stubbed answer never rendered its link`);
+    const request = sent[0];
+    const body = request?.body as { message?: unknown; history?: unknown } | undefined;
+    if (sent.length !== 1 || request?.method !== 'POST' || body?.message !== 'What should I use for my blog?' || !Array.isArray(body.history)) {
+      fail(`${label}: expected one POST with the question, got ${JSON.stringify(sent)}`);
+    }
+    const after = await page.evaluate(() => ({
+      leaked: document.querySelectorAll('.raw-html-leak, [role="dialog"] img').length,
+      field: (document.querySelector('#chat-input') as HTMLTextAreaElement | null)?.value,
+    }));
+    if (after.leaked > 0) fail(`${label}: raw HTML from the answer was rendered`);
+    if (after.field !== '') fail(`${label}: the field kept ${JSON.stringify(after.field)} after sending`);
+    await page.waitForFunction(() => document.activeElement?.id === 'chat-input', { timeout: 5000 }).catch(() => undefined);
+    if (!(await activeMatches(page, '#chat-input'))) fail(`${label}: focus left the question field after the answer`);
+
+    await close();
+    if (!(await activeMatches(page, '.chat-toggle'))) fail(`${label}: Escape did not return focus to the chat button`);
+
+    // The conversation survives a reload in the same tab.
+    await page.reload({ waitUntil: 'networkidle0' });
+    await page.waitForSelector('.chat-toggle', { visible: true, timeout: 10000 });
+    await open();
+    if (!(await activeMatches(page, '#chat-input'))) fail(`${label}: reopening does not focus the question field`);
+    const kept =await page.$$eval('.chat-user, .chat-answer', (els) => els.length);
+    if (kept !== 2) fail(`${label}: ${kept} messages after a reload, expected 2`);
+    await close();
+    if (!(await activeMatches(page, '.chat-toggle'))) fail(`${label}: focus did not return after the second close`);
+    await page.evaluate(() => sessionStorage.clear());
+
+    if (errors.length > 0) fail(`${label}: script errors ${errors.join('; ')}`);
+    console.log(
+      `  ${label}: opens and closes by keyboard, focus returns, axe serious or critical ${blocking.length}, ` +
+        `${dark ? 'dark' : 'light'}, stubbed answer rendered, history kept`,
+    );
+  });
+}
+
 async function checkScreen(browser: Browser, build: string): Promise<void> {
   const route = `/screens/${build}/`;
   const expected = /<title>([^<]*)<\/title>/.exec(readFileSync(join(siteDist, 'screens', build, 'index.html'), 'utf8'))?.[1];
@@ -313,6 +479,12 @@ async function main(): Promise<void> {
     await checkNoScript(browser);
     console.log('keyboard');
     for (const route of ['/', `/builds/${builds[0]}/`, '/write-up/']) await checkKeyboard(browser, route);
+    console.log('chat island, against a stubbed /api/chat/');
+    await checkChat(browser, '/', 1440, 900, 'light');
+    await checkChat(browser, '/', 1440, 900, 'dark');
+    await checkChat(browser, '/', 375, 812, 'dark');
+    await checkChat(browser, '/write-up/', 1440, 900, 'dark');
+    await checkChat(browser, `/builds/${builds[0]}/`, 375, 812, 'light');
     if (withScreens) {
       console.log('screens');
       for (const build of builds) await checkScreen(browser, build);

@@ -24,6 +24,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      # The site's chat function, api/chat.ts, with a fake model. No provider
+      # is called and no key is needed.
+      - name: chat function unit tests
+        run: pnpm test:api
       # Report only. The builds were scored as written, and reformatting them
       # would move the line counts the comparison publishes, so findings show
       # in the log without failing the run. See handoff.md section 6.

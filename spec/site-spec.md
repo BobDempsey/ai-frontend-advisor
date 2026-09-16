@@ -21,6 +21,7 @@ These come first because a results site is the most tempting place in the repo t
 - The site publishes no number it did not read from a file in the repo. Nothing is typed by hand into a component. If a figure is wrong, the fix is a rescore, not an edit here.
 - The site computes no composite score and names no winner. Section 10 of the screen spec settled that, and a UI is where it would come back, as a total column, a rank, or five stars.
 - The two reporting groups hold. React and Vue are shown as separate groups, and the gzipped delta is the only number allowed to span them.
+- The chat assistant in section 14 is held to this section too. It names no winner, ranks nothing, invents no number, and quotes only the gzipped delta when it compares a React build with a Vue build.
 
 ## 3. Stack
 
@@ -31,14 +32,16 @@ The original stack was chosen for neutrality, since shadcn/ui is one of the eigh
 How it is used:
 
 - shadcn/ui components are copied into `site/src/components/ui/` by the shadcn CLI, the way `builds/react-shadcn` has them, and the site owns those files. The site never imports from `builds/`.
-- Pages are React components rendered with `renderToStaticMarkup` at build time, one HTML file per view, as before. React does not ship to the browser and nothing hydrates.
-- Only components that work as static markup are used: Card, Table, Badge, Button, Separator, and similar. Anything that needs client side state to function (Tabs, Dialog, Tooltip, DropdownMenu) is out, because there is no hydration to drive it.
-- The scoreboard's light and dark toggle stays the site's only script. It switches shadcn's `dark` class on the root element instead of a data attribute.
+- Pages are React components rendered with `renderToStaticMarkup` at build time, one HTML file per view, as before. Nothing hydrates. The one exception is the chat island in section 14, which ships React to the browser and mounts its own root beside the static page.
+- Only components that work as static markup are used on the pages: Card, Table, Badge, Button, Separator, and similar. Anything that needs client side state to function (Tabs, Dialog, Tooltip, DropdownMenu) is out, because there is no hydration to drive it. The chat island is the exception, and it uses Sheet and Textarea.
+- The site has two scripts: the scoreboard's light and dark toggle, which switches shadcn's `dark` class on the root element, and the chat island of section 14.
 - Tailwind CSS compiles at build time. Its output is the site's stylesheet.
 - Charts stay inline SVG written here, colored with shadcn's chart tokens. The shadcn chart component depends on Recharts rendering in the browser, which a static page does not do, and a horizontal bar per build still does not need a library.
 - The build-time markdown converter stays. Its output is styled with Tailwind's typography plugin or equivalent hand written rules.
 
 Dependencies beyond that set (React, React DOM, Tailwind and its Vite plugin, the shadcn CLI's own dependencies such as `class-variance-authority`, `clsx`, `tailwind-merge` and Radix primitives, and the markdown converter) are an owner call. The owner approved four more on 2026-09-16, all brought in by the shadcn CLI: `lucide-react` for icons, rendered as static SVG, `tw-animate-css`, the `shadcn` package for its Tailwind base styles, and the self-hosted Geist font.
+
+The owner approved three more on 2026-09-16 for the chat assistant: `react-markdown` in the site, to render answers without raw HTML; `openai` at the repo root, for the function in `api/`; and `vitest` as a root dev dependency, for that function's unit tests. Sheet and Textarea came in through the shadcn CLI with no new package.
 
 ## 4. Where it lives
 
@@ -57,7 +60,7 @@ The root `build` script filters `./builds/*` and `./baselines/*`, so `site/` sta
 
 ## 5. What the site reads
 
-Every view is built from files already committed. No API, no runtime fetch of anything outside the deployed output.
+Every view is built from files already committed. No runtime fetch of anything outside the deployed output, with one exception: the chat island posts to `/api/chat/` on the same origin (section 14).
 
 - `results/<build>.json`, eight files, the shape `scripts/measure.ts` writes: `bundle`, `accessibility`, `ergonomics`, `render`, and `criteria`. This is the source for every number on the site.
 - `scripts/roster.ts` for each build's library name, framework, and kind. The site imports the roster rather than restating the eight names, so a label is written once.
@@ -113,7 +116,7 @@ Each row carries its 1440px screenshot as a thumbnail in the first column, about
 
 Above the table, a short TL;DR summarizes the run: how many builds pass the criteria, the range of deltas with the library at each end, which builds are over budget, and the range of first render medians with its caveat. Every figure in it is computed from `results/` at build time. It names no single winner, but it lists the write-up's picks by use case, condensed from its "Picking one" section, and the build fails if that section stops naming a library the summary names.
 
-The scoreboard, and only the scoreboard, follows the reader's system color scheme, light or dark, and carries a button that switches between the two and remembers the reader's choice in that browser. That button is the site's only script. It is inlined, it fetches nothing, and without it the page still follows the system scheme with the button hidden. Every other view, and every build screen, stays light. The dark colors meet the same contrast bar as the light ones, and framework is still the only thing color carries. Added 2026-09-16 at the owner's request.
+The scoreboard, and only the scoreboard, follows the reader's system color scheme, light or dark, and carries a button that switches between the two and remembers the reader's choice in that browser. That button's script is inlined, it fetches nothing, and without it the page still follows the system scheme with the button hidden. Every other view, and every build screen, stays light. The dark colors meet the same contrast bar as the light ones, and framework is still the only thing color carries. Added 2026-09-16 at the owner's request.
 
 **Build detail, `/builds/<build>/`.** One build, every field of its result file, its `handBuilt` three, its failed criterion numbers when there are any, both screenshots at full size side by side with their widths labeled, a link to its live screen, and a link to its folder on GitHub. This is the view that lets a reader check a claim, so it is the one place the pictures get room.
 
@@ -150,7 +153,7 @@ A site reporting on accessibility defaults that fails its own audit ends the com
 
 ## 10. Build and output
 
-`pnpm site:build` produces `site/dist/`, a static directory with no server behind it. `pnpm site:screens` fills `site/dist/screens/`. CI runs both in the `publish` job, which today is a placeholder that echoes a line.
+`pnpm site:build` produces `site/dist/`, a static directory. The only server code is the chat function in `api/`, section 14. `pnpm site:screens` fills `site/dist/screens/`. CI runs both in the `publish` job, which today is a placeholder that echoes a line.
 
 `pnpm screenshots` is not part of either. It needs Chrome and it writes files a human should look at before committing, so it runs by hand and its output is committed. A site build with a missing screenshot fails, the same way a missing results field does.
 
@@ -181,7 +184,7 @@ The site is done when all of these hold. They are checkable, in the same spirit 
 
 ## 12. Out of scope
 
-No server, no database, no search, no user accounts, no comments, and no analytics. No dark mode, matching the screen spec, except on the scoreboard (section 7). No responsive work below 375px, which is the narrow width the builds were already reviewed at. No live rerun of anything: the site displays a scoring run, it does not perform one. No editing of the write-up's prose to fit a layout.
+No server beyond the chat function in section 14, no database, no search, no user accounts, no comments, and no analytics. No dark mode, matching the screen spec, except on the scoreboard (section 7). No responsive work below 375px, which is the narrow width the builds were already reviewed at. No live rerun of anything: the site displays a scoring run, it does not perform one. No editing of the write-up's prose to fit a layout.
 
 ## 13. Open decisions
 
@@ -193,3 +196,19 @@ These are not settled and each is an owner call.
 4. **Does CI check the screenshots are current?** A leg that recaptures and diffs would catch a stale image the way CI already catches a regenerated `tickets.json`. It also needs Chrome in the publish job and it will flake on font rendering differences between a runner and this Windows machine, which is probably why the answer is no.
 
 Settled on 2026-09-09: the screens are embedded as committed screenshots, thumbnail sized on the scoreboard and full sized on a build detail view, with the live applications one click behind them. Eight iframes on one route was the alternative and it was rejected on page weight.
+
+## 14. The chat assistant
+
+Added 2026-09-16 at the owner's request. Readers can ask a question such as "what should I use for my blog?" and get a short answer drawn from this comparison and nothing else.
+
+**What it answers from.** One system prompt, built on the server from `write-up/README.md`, `spec/screen-spec.md`, the eight `results/*.json` files, and the labels in `scripts/roster.ts`. The prompt tells the model to answer only from that material, to say plainly when it does not cover a question, to decline unrelated questions, to never invent a number, to quote only the gzipped delta when a comparison spans React and Vue, to name no overall winner while giving the write-up's per situation picks, to keep answers short, and to link to `/builds/<build>/`, `/screens/<build>/`, `/write-up/` and `/spec/` where they help. Section 2 applies to every answer.
+
+**Where it runs.** One serverless function, `api/chat.ts`, at the repo root. Vercel deploys it beside the static output, and `vercel.json` ships the grounding files with it through `includeFiles`. That makes the function the one part of the site that assumes Vercel; the static pages stay host neutral, and on another host the chat answers with an error sentence while every page still works. The model is OpenAI's `gpt-5.6-luna`, called with the `OPENAI_API_KEY` environment variable, which exists only on the server. No key is ever in client code or in a committed file.
+
+**Limits, all enforced on the server.** POST only. The request's Origin must match its host. Each message is cut to 1000 characters and the history to its last 6 turns, and the output has a token ceiling. A per address rate limit keyed on `x-forwarded-for` runs in each function instance's memory; it is best effort and not durable. Every failure, a missing key included, comes back as a plain sentence the drawer shows.
+
+**The island.** A floating button at the bottom right of every page opens a shadcn Sheet. The page stays static HTML; a separate Vite entry, `site/src/chat/main.tsx`, mounts the island with `createRoot` onto an empty placeholder in the shell. Answers render as markdown with raw HTML dropped. The conversation lives in `sessionStorage` under one key, and Start again clears it. The drawer takes the page's colors, so it is dark only where the scoreboard is.
+
+**Its accessibility bar** is section 9's, plus these: the message list is `aria-live="polite"`, the question field has a real `<label>`, Enter sends and Shift+Enter adds a line, Escape closes the drawer, focus returns to the button on close, and axe reports zero serious or critical violations with the drawer open.
+
+**How it is checked.** `pnpm test:api` unit tests the prompt builder, message and history limits, the Origin check, the rate limit, and the handler with a fake model, and CI's `shared` job runs it. `pnpm site:check` opens the drawer on the scoreboard and two other views, runs axe with it open, checks keyboard open, close and focus return, and sends one message against a stubbed `/api/chat/`. Neither calls the model.

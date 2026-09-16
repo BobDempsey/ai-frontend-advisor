@@ -12,9 +12,10 @@
     "site:build": "pnpm --filter @uilc/site build",
     "site:screens": "tsx scripts/screens.ts",
     "site:check": "tsx scripts/site-check.ts",
+    "test:api": "vitest run --root api",
     "fixture:generate": "tsx packages/fixture/src/generate.ts && tsx scripts/check-fixture.ts",
     "fixture:check": "tsx scripts/check-fixture.ts",
-    "typecheck": "tsc --noEmit -p packages/fixture/tsconfig.json && tsc --noEmit -p packages/harness/tsconfig.json && tsc --noEmit -p packages/criteria/tsconfig.json && tsc --noEmit -p site/tsconfig.json",
+    "typecheck": "tsc --noEmit -p packages/fixture/tsconfig.json && tsc --noEmit -p packages/harness/tsconfig.json && tsc --noEmit -p packages/criteria/tsconfig.json && tsc --noEmit -p site/tsconfig.json && tsc --noEmit -p tsconfig.api.json",
     "lint": "biome lint builds",
     "format:check": "biome format builds",
     "new-build": "tsx scripts/new-build.ts",
@@ -28,6 +29,10 @@
     "lighthouse": "^13.4.1",
     "puppeteer-core": "^25.10.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "openai": "^7.16.0"
   }
 }

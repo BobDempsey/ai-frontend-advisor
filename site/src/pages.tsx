@@ -1,8 +1,9 @@
 /**
  * The four views of site spec section 7, as React components rendered to
  * static HTML at build time with `renderToStaticMarkup`. Each page is its own
- * file; there is no client side routing, React never reaches the browser, and
- * the only script is the scoreboard's theme toggle.
+ * file; there is no client side routing and none of these pages hydrate. The
+ * only scripts are the scoreboard's theme toggle and the chat island in
+ * `src/chat/`, which mounts its own root beside the page.
  */
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
