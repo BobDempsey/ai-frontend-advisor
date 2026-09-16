@@ -6,3 +6,7 @@ lighthouse-report.*
 .playwright-mcp/
 site/dist/
 builds/*/dist-site/
+.env
+.env.local
+.env.*.local
+.vercel/
