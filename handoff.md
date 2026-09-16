@@ -256,7 +256,7 @@ Phase three opened with `spec/site-spec.md` (`1520ce2`). It treats the site as a
 
 The site spec puts a screenshot on the scoreboard and the live screen one click behind it, since eight live screens on one route are too heavy. `scripts/screenshots.ts` (`75a2601`) writes those shots. It serves each `dist` through `scripts/serve.ts` on its own port from 4200 up, drives a fresh `chrome-launcher` Chrome per build with `puppeteer-core`, and waits for the 25 rows criterion 1 guarantees before shooting. Its header says the site build will fail if a screenshot it names is missing, so rerun it after any change that alters a screen, look at the output, and commit it.
 
-Built on 2026-09-16. The owner settled open decision 1 as separate static HTML files per view, no client-side routing, so each route is its own file that axe can check. Open decisions 2 to 4 are still open: `publish` uploads `site/dist` as an artifact and deploys nowhere.
+Built on 2026-09-16. The owner settled open decision 1 as separate static HTML files per view, no client-side routing, so each route is its own file that axe can check. Open decision 2 is settled by the deploy below: CI's `publish` job only uploads `site/dist` as an artifact, and Vercel builds and deploys on its own. Decisions 3 and 4 are still open.
 
 What exists: `site/` (`@uilc/site`, with `marked` as its one extra dependency, used at build time), `scripts/screens.ts` (`pnpm site:screens`), and `scripts/site-check.ts` (`pnpm site:check`), a root script the spec did not name. It serves `site/dist` and runs axe on all 11 routes at 1440 and 375, checks for sideways scroll, the fold at 1440x900, keyboard reach with a visible focus outline, and that all eight screens paint 25 rows. `scripts/serve.ts` gained an optional `{ directories: true }` argument for trailing-slash `index.html`; its two older callers are unchanged. `axe-core` became a root dev dependency. `pnpm typecheck` now covers `site/tsconfig.json`.
 
@@ -265,3 +265,13 @@ Verified locally on 2026-09-16: all 16 of the site spec's acceptance criteria pa
 Choices made where the spec was loose. Library names in the write-up prose link to detail views, and a sidebar lists each build's detail and live screen links. An "assembly kit" tag is generated after kit names only in write-up tables that lack a Kind column, so the prose stays untouched. The 180 KB budget is parsed from the screen spec's "Budget is 180 KB" sentence rather than typed. Sorting and hover previews did not ship, so there is no `aria-sort`; each group is in fixed delta order. Bars sit below the scoreboard table rather than inside it, which keeps the first row above the fold.
 
 Gotcha: `pnpm site:build` empties `site/dist`, so run `pnpm site:screens` after it, every time.
+
+## 16. Deployed to Vercel, 2026-09-16
+
+Live at https://ui-library-comparison.bobdempsey83.com, with the eight screens under `/screens/<build>/`. Vercel project `ui-library-comparison` (team `bobdempseys-projects`) is linked to the GitHub repo and deploys `main` to production on every push. Build settings live in the root `vercel.json`: `pnpm site:build && pnpm site:screens`, output `site/dist`, `trailingSlash: true`. The Vercel CLI is not installed globally; `npx vercel@latest ... --scope bobdempseys-projects --non-interactive` works with the existing login.
+
+DNS is in Route 53, zone `bobdempsey83.com` (`Z071721280HQ6W3TJD8O`): a CNAME from `ui-library-comparison` to `ef25db58eb6d2b4e.vercel-dns-017.com.`, the project-specific target Vercel recommended. `ai-storefront` in the same zone follows the same pattern.
+
+Verified on 2026-09-16: `/`, `/write-up/`, `/spec/`, `/builds/react-antd/`, both sampled `/screens/<build>/` routes and a screenshot all return 200 on the custom domain. On this Windows machine curl needs `--ssl-no-revoke` to reach it, which is a local schannel quirk, not a certificate problem.
+
+The first render numbers in `results/` are still from the local server. Retaking them against this URL (site spec open decision 3) is the next task, and it is a rescore commit that touches `results/`.
