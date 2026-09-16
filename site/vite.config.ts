@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, type Plugin } from 'vite';
 import { loadSiteData, type SiteData } from './src/data';
-import { allPages, nav, relFor, type Page } from './src/pages';
+import { allPages, nav, relFor, themeToggleHtml, type Page } from './src/pages';
 import { esc } from './src/html';
 import { THEME_SCRIPT } from './src/theme';
 
@@ -41,6 +41,7 @@ function fill(shell: string, page: Page): string {
     // Only the scoreboard may turn dark, site spec section 7.
     htmlClass: page.theme === 'auto' ? 'theme-auto' : 'theme-light',
     headScript: page.theme === 'auto' ? THEME_SCRIPT : '',
+    navExtra: page.theme === 'auto' ? themeToggleHtml() : '',
   };
   return shell.replace(/<!--site:(\w+)-->/g, (_, name: string) => {
     const value = slots[name];

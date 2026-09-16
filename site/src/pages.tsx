@@ -7,7 +7,7 @@
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { BuildResult } from '@uilc/harness';
-import { Moon } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { CategoryCharts } from './charts';
 import { KindBadge, OverBudget, RenderNoteRef, SectionHeading, linkClass } from './components/site';
 import { Button } from './components/ui/button';
@@ -262,13 +262,27 @@ function Summary({ data }: { data: SiteData }) {
 
 function ThemeToggle() {
   // Hidden until the inline script wires it up, so a page without script
-  // shows no dead control.
+  // shows no dead control. The icon shows the scheme a click switches to.
   return (
-    <Button type="button" variant="outline" className="theme-toggle aria-pressed:bg-muted [&[hidden]]:hidden" aria-pressed="false" hidden>
-      <Moon aria-hidden="true" />
-      Dark mode
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className="theme-toggle [&[hidden]]:hidden"
+      aria-label="Dark mode"
+      aria-pressed="false"
+      title="Toggle dark mode"
+      hidden
+    >
+      <Moon aria-hidden="true" className="dark:hidden" />
+      <Sun aria-hidden="true" className="hidden dark:block" />
     </Button>
   );
+}
+
+/** The navbar's theme toggle, for the scoreboard's shell only. */
+export function themeToggleHtml(): string {
+  return renderToStaticMarkup(<ThemeToggle />);
 }
 
 function Scoreboard({ data }: { data: SiteData }) {
@@ -277,10 +291,7 @@ function Scoreboard({ data }: { data: SiteData }) {
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
-        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">Scoreboard</h1>
-          <ThemeToggle />
-        </div>
+        <h1 className="font-heading text-3xl font-semibold tracking-tight">Scoreboard</h1>
         <Lede>
           {data.builds.length} UI libraries built the same <Code>/tickets</Code> screen against one spec. Every figure here
           is read from <Code>results/</Code> in the repo. There is no overall score and no winner; the{' '}
