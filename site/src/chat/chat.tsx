@@ -126,12 +126,13 @@ export function ChatIsland() {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
-        <Button
-          size="lg"
-          aria-label="Ask about this comparison"
-          className="chat-toggle fixed right-4 bottom-4 z-40 size-12 rounded-full p-0 shadow-lg sm:right-6 sm:bottom-6"
-        >
-          <MessageCircleQuestion className="size-5" aria-hidden="true" />
+        <Button variant="ghost" size="icon" aria-label="Ask about this comparison" title="Ask about this comparison" className="chat-toggle relative">
+          <MessageCircleQuestion aria-hidden="true" />
+          {/* A live status dot. It stops pulsing for readers who ask for reduced motion. */}
+          <span aria-hidden="true" className="pointer-events-none absolute top-1 right-1 flex size-2">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-500 opacity-75 motion-reduce:animate-none" />
+            <span className="relative inline-flex size-2 rounded-full bg-green-500" />
+          </span>
         </Button>
       </SheetTrigger>
 
