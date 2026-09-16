@@ -1,22 +1,9 @@
 # Remaining tasks - ui-library-comparison
 
-- [x] Build the fixture, criteria, and harness packages
-- [x] Build and score all eight library implementations
-- [x] Write the comparison write-up
-- [x] Add a Lighthouse runner for time to first render
-- [x] Fix the react-antd 375px pagination overflow
-- [x] Rename "bakeoff" to "ui library comparison" throughout the repo
-- [x] Run CI on a pull request to exercise the criteria/harness diff check
-- [x] Review all eight builds past first paint (modal, toast, narrow viewport)
-- [x] Typecheck each build against its own tsconfig (all eight pass)
-- [x] Spec the results site (spec/site-spec.md)
-- [x] Capture and commit the sixteen build screenshots
-- [ ] Build the results site against spec/site-spec.md
-- [ ] Publish the eight static sites (CI publish job is a placeholder)
+- [ ] Confirm the CI publish job runs green, then choose a deploy target
+- [ ] Fix the write-up's stale shadcn line count and limits paragraph
 - [ ] Lint and format every build (biome config location is an owner call)
-- [x] Add vue-tsc to vue-primevue and vue-quasar for a real .vue typecheck
-- [x] Fix or dismiss vue-primevue's 3 vue-tsc errors in TicketsTable.vue
 - [ ] Run the manual screen reader pass (NVDA, VoiceOver)
 - [ ] Deploy a static build and retake Lighthouse numbers against it
 - [ ] Decide whether to promote the shared Jest reporter into its own package
-- [ ] Fix the "bake-off" naming tail in the sibling demo-resume repo
+- [ ] Fix the invalid packages/criteria/jest-preset.json (owner)
