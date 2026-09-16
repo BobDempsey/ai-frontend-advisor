@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
 import { loadSiteData, type SiteData } from './src/data';
 import { allPages, nav, relFor, themeToggleHtml, type Page } from './src/pages';
 import { esc } from './src/html';
@@ -120,11 +120,71 @@ function sitePages(): Plugin {
   };
 }
 
+/**
+ * `pnpm dev` answers `/api/chat/` itself, with the same handler the Vercel
+ * Function uses, so the chat works locally with no Vercel CLI. The key comes
+ * from `.env.local` (or `.env`) at the repo root, read here and never exposed
+ * to the browser: only `VITE_` variables reach client code.
+ */
+function devChat(): Plugin {
+  return {
+    name: 'uilc-dev-chat',
+    apply: 'serve',
+    async configureServer(server) {
+      const env = loadEnv(server.config.mode, repoRoot, '');
+      if (!process.env.OPENAI_API_KEY && env.OPENAI_API_KEY) process.env.OPENAI_API_KEY = env.OPENAI_API_KEY;
+      if (!process.env.OPENAI_API_KEY) {
+        server.config.logger.warn('OPENAI_API_KEY is not set in .env.local, so the chat will say it is not set up.');
+      }
+      // Loaded only by the dev server, so a site build never pulls in the OpenAI SDK.
+      const [{ buildSystemPrompt, loadGrounding }, { createRateLimiter }, { createChatHandler }, { askModel }] =
+        await Promise.all([
+          import('../api/_lib/grounding'),
+          import('../api/_lib/guard'),
+          import('../api/_lib/handler'),
+          import('../api/_lib/model'),
+        ]);
+      const handle = createChatHandler({
+        ask: askModel,
+        // Re-read each time, so edits to the write-up or results show up without a restart.
+        systemPrompt: () => buildSystemPrompt(loadGrounding(repoRoot)),
+        limiter: createRateLimiter({ limit: 60, windowMs: 10 * 60_000 }),
+      });
+
+      server.middlewares.use((req, res, next) => {
+        const path = (req.url ?? '').split('?')[0] ?? '';
+        if (!path.startsWith('/api/chat')) return next();
+        const chunks: Buffer[] = [];
+        req.on('data', (chunk: Buffer) => chunks.push(chunk));
+        req.on('end', () => {
+          const headers = new Headers();
+          for (const [key, value] of Object.entries(req.headers)) {
+            if (typeof value === 'string') headers.set(key, value);
+            else if (Array.isArray(value)) headers.set(key, value.join(', '));
+          }
+          const method = req.method ?? 'GET';
+          const init: RequestInit = { method, headers };
+          if (method !== 'GET' && method !== 'HEAD') init.body = Buffer.concat(chunks);
+          const request = new Request(`http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`, init);
+          handle(request)
+            .then(async (response) => {
+              res.statusCode = response.status;
+              response.headers.forEach((value, key) => res.setHeader(key, value));
+              res.end(Buffer.from(await response.arrayBuffer()));
+            })
+            .catch(next);
+        });
+        req.on('error', next);
+      });
+    },
+  };
+}
+
 export default defineConfig({
   root: siteDir,
   base: './',
   appType: 'mpa',
-  plugins: [sitePages(), tailwindcss()],
+  plugins: [sitePages(), devChat(), tailwindcss()],
   // The shadcn components import each other through `@/`, as site/tsconfig.json maps it.
   resolve: { alias: { '@': join(siteDir, 'src') } },
   server: { port: 5190, strictPort: true },

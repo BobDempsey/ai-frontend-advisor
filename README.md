@@ -66,7 +66,7 @@ The results site builds and checks with its own root scripts:
 pnpm site:build          # site/dist, one static HTML file per view
 pnpm site:screens        # rebuild the eight apps under site/dist/screens/ (run after site:build)
 pnpm site:check          # axe, keyboard, fold, theme, and screen checks in Chrome
-pnpm site:dev            # local dev server on port 5190
+pnpm dev                 # the site on http://localhost:5190, chat included (key from .env.local)
 pnpm screenshots --all   # recapture the sixteen committed screenshots, by hand
 ```
 
