@@ -1,7 +1,7 @@
 /**
  * The four views of site spec section 7, rendered to HTML strings at build
- * time. Each page is its own static file; there is no client side routing and
- * no script on any page.
+ * time. Each page is its own static file; there is no client side routing, and
+ * the only script is the scoreboard's theme toggle.
  */
 import { categoryCharts } from './charts';
 import { FRAMEWORK_LABEL, SCHEMA, SHOT_WIDTHS, type Build, type SiteData } from './data';
@@ -133,7 +133,7 @@ ${group.builds.map((b) => scoreboardRow(b, data.budgetKb)).join('\n')}
     )
     .join('\n');
 
-  const body = `<h1>Scoreboard</h1>
+  const body = `<div class="title-row"><h1>Scoreboard</h1><button type="button" class="theme-toggle" aria-pressed="false" hidden>Dark mode</button></div>
 <p class="lede">${esc(data.builds.length)} UI libraries built the same <code>/tickets</code> screen against one spec. Every figure here is read from <code>results/</code> in the repo. There is no overall score and no winner; the <a href="write-up/">write-up</a> picks per situation.</p>
 ${summary(data)}
 <div class="table-wrap" role="region" aria-labelledby="scoreboard-caption" tabindex="0">

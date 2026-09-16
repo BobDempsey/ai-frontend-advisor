@@ -5,7 +5,7 @@
  * `results/`, `scripts/roster.ts`, and the two markdown files. `index.html` is
  * the shell every page shares; the plugin below fills it per page and hands
  * Vite one HTML entry per view, so the output is plain files with relative
- * links and no script. `base: './'` keeps every asset URL relative, so the
+ * links. The one script is the scoreboard's inline theme toggle, see `src/theme.ts`. `base: './'` keeps every asset URL relative, so the
  * folder deploys to any host at any path.
  */
 import { readFileSync } from 'node:fs';
@@ -15,6 +15,7 @@ import { defineConfig, type Plugin } from 'vite';
 import { loadSiteData, type SiteData } from './src/data';
 import { allPages, nav, relFor, type Page } from './src/pages';
 import { esc } from './src/html';
+import { THEME_SCRIPT } from './src/theme';
 
 const siteDir = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = join(siteDir, '..');
@@ -34,6 +35,7 @@ function fill(shell: string, page: Page): string {
     home: relFor(page.path) || './',
     content: page.body,
     bodyClass: page.theme === 'auto' ? 'theme-auto' : 'theme-light',
+    bodyScript: page.theme === 'auto' ? THEME_SCRIPT : '',
   };
   return shell.replace(/<!--site:(\w+)-->/g, (_, name: string) => {
     const value = slots[name];

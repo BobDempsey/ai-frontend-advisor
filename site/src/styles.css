@@ -20,9 +20,13 @@
   color-scheme: light;
 }
 
-/* The scoreboard only. Every color on the site is one of the tokens above. */
+/*
+ * The scoreboard only. Every color on the site is one of the tokens above.
+ * It follows the system scheme until the reader picks one with the toggle,
+ * which sets data-theme on the body; the two blocks carry the same tokens.
+ */
 @media (prefers-color-scheme: dark) {
-  body.theme-auto {
+  body.theme-auto:not([data-theme='light']) {
     --ink: #ececec;
     --muted: #b8b8b8;
     --line: #3d3d3d;
@@ -36,6 +40,21 @@
     --vue-light: #245a3e;
     color-scheme: dark;
   }
+}
+
+body.theme-auto[data-theme='dark'] {
+  --ink: #ececec;
+  --muted: #b8b8b8;
+  --line: #3d3d3d;
+  --paper: #141414;
+  --panel: #1f1f1f;
+  --link: #8fbcf5;
+  --focus: #ececec;
+  --react: #6aa6e6;
+  --react-light: #2d4a6b;
+  --vue: #5cc08c;
+  --vue-light: #245a3e;
+  color-scheme: dark;
 }
 
 *,
@@ -684,4 +703,27 @@ tr.group th {
 .tldr ul {
   margin: 0 0 4px;
   padding-left: 20px;
+}
+
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.theme-toggle {
+  font: inherit;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.theme-toggle[hidden] {
+  display: none;
 }

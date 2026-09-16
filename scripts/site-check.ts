@@ -12,6 +12,8 @@
  *   either system color scheme
  * - a view other than the scoreboard turns dark, or the scoreboard does not
  *   (site spec section 12)
+ * - the scoreboard's theme toggle does not switch, report, or remember the
+ *   reader's choice
  * - a route scrolls sideways at 375px wide
  * - the first scoreboard row's numbers sit below the fold at 1440x900
  * - a focused control on the scoreboard has no visible outline
@@ -173,6 +175,42 @@ async function checkKeyboard(browser: Browser, route: string): Promise<void> {
   });
 }
 
+async function checkThemeToggle(browser: Browser): Promise<void> {
+  await withPage(browser, 1440, 900, async (page) => {
+    await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    const state = () =>
+      page.evaluate(() => {
+        const [r, g, b] = (getComputedStyle(document.body).backgroundColor.match(/\d+/g) ?? []).map(Number);
+        const button = document.querySelector<HTMLButtonElement>('.theme-toggle');
+        return {
+          dark: (r ?? 255) + (g ?? 255) + (b ?? 255) < 255,
+          visible: Boolean(button && !button.hidden),
+          pressed: button?.getAttribute('aria-pressed'),
+        };
+      });
+    await page.goto(`${ORIGIN}/`, { waitUntil: 'networkidle0' });
+    await page.evaluate(() => localStorage.clear());
+    await page.reload({ waitUntil: 'networkidle0' });
+    const start = await state();
+    if (!start.visible) fail('/: the theme toggle is hidden');
+    if (start.dark || start.pressed !== 'false') fail(`/: toggle starts ${JSON.stringify(start)} under a light system scheme`);
+    await page.click('.theme-toggle');
+    const flipped = await state();
+    if (!flipped.dark || flipped.pressed !== 'true') fail(`/: toggle click left ${JSON.stringify(flipped)}`);
+    await page.reload({ waitUntil: 'networkidle0' });
+    const kept = await state();
+    if (!kept.dark || kept.pressed !== 'true') fail(`/: dark choice not kept after reload, ${JSON.stringify(kept)}`);
+    await page.click('.theme-toggle');
+    const back = await state();
+    if (back.dark || back.pressed !== 'false') fail(`/: second click left ${JSON.stringify(back)}`);
+    await page.evaluate(() => localStorage.clear());
+    if (errors.length > 0) fail(`/: script errors ${errors.join('; ')}`);
+    console.log('  /: toggle switches to dark, survives a reload, and switches back');
+  });
+}
+
 async function checkScreen(browser: Browser, build: string): Promise<void> {
   const route = `/screens/${build}/`;
   const expected = /<title>([^<]*)<\/title>/.exec(readFileSync(join(siteDist, 'screens', build, 'index.html'), 'utf8'))?.[1];
@@ -221,6 +259,8 @@ async function main(): Promise<void> {
     for (const route of routes) await checkRoute(browser, route);
     console.log('fold at 1440x900');
     await checkFold(browser);
+    console.log('theme toggle');
+    await checkThemeToggle(browser);
     console.log('keyboard');
     for (const route of ['/', `/builds/${builds[0]}/`, '/write-up/']) await checkKeyboard(browser, route);
     if (withScreens) {

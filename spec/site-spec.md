@@ -105,7 +105,7 @@ Each row carries its 1440px screenshot as a thumbnail in the first column, about
 
 Above the table, a short TL;DR summarizes the run: how many builds pass the criteria, the range of deltas with the library at each end, which builds are over budget, and the range of first render medians with its caveat. Every figure in it is computed from `results/` at build time. It names no winner.
 
-The scoreboard, and only the scoreboard, follows the reader's system color scheme, light or dark, with no script and no toggle. Every other view, and every build screen, stays light. The dark colors meet the same contrast bar as the light ones, and framework is still the only thing color carries. Added 2026-09-16 at the owner's request.
+The scoreboard, and only the scoreboard, follows the reader's system color scheme, light or dark, and carries a button that switches between the two and remembers the reader's choice in that browser. That button is the site's only script. It is inlined, it fetches nothing, and without it the page still follows the system scheme with the button hidden. Every other view, and every build screen, stays light. The dark colors meet the same contrast bar as the light ones, and framework is still the only thing color carries. Added 2026-09-16 at the owner's request.
 
 **Build detail, `/builds/<build>/`.** One build, every field of its result file, its `handBuilt` three, its failed criterion numbers when there are any, both screenshots at full size side by side with their widths labeled, a link to its live screen, and a link to its folder on GitHub. This is the view that lets a reader check a claim, so it is the one place the pictures get room.
 
