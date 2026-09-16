@@ -24,13 +24,21 @@ These come first because a results site is the most tempting place in the repo t
 
 ## 3. Stack
 
-Vanilla TypeScript and Vite. Hand written CSS. No UI library, no component framework, no chart library.
+React, TypeScript, Vite, Tailwind CSS, and shadcn/ui components, rendered to static HTML at build time. The owner changed this on 2026-09-16; the site was first built in vanilla TypeScript with hand written CSS.
 
-The reason is neutrality, and it is the whole reason. A site built in one of the eight would be the scoreboard for a contest rendered in one of the entrants, and every layout choice it made would read as an endorsement. A neutral stack also keeps the ten app CI matrix meaning what it means today.
+The original stack was chosen for neutrality, since shadcn/ui is one of the eight builds and a site styled with it could read as an endorsement. The owner accepted that trade for a better looking site. What still holds is everything in section 2: the site names no winner, ranks nothing but delta, and types no number by hand, so the styling is the only thing the change touches.
 
-Two dependencies are allowed beyond Vite and TypeScript. A markdown to HTML converter, run at build time and never shipped to the browser, and nothing else. If a second one looks necessary, it is an owner call, not a build detail.
+How it is used:
 
-Charts are inline SVG and CSS, written here. Every chart on this site is a horizontal bar of one number against seven others, which does not need a library.
+- shadcn/ui components are copied into `site/src/components/ui/` by the shadcn CLI, the way `builds/react-shadcn` has them, and the site owns those files. The site never imports from `builds/`.
+- Pages are React components rendered with `renderToStaticMarkup` at build time, one HTML file per view, as before. React does not ship to the browser and nothing hydrates.
+- Only components that work as static markup are used: Card, Table, Badge, Button, Separator, and similar. Anything that needs client side state to function (Tabs, Dialog, Tooltip, DropdownMenu) is out, because there is no hydration to drive it.
+- The scoreboard's light and dark toggle stays the site's only script. It switches shadcn's `dark` class on the root element instead of a data attribute.
+- Tailwind CSS compiles at build time. Its output is the site's stylesheet.
+- Charts stay inline SVG written here, colored with shadcn's chart tokens. The shadcn chart component depends on Recharts rendering in the browser, which a static page does not do, and a horizontal bar per build still does not need a library.
+- The build-time markdown converter stays. Its output is styled with Tailwind's typography plugin or equivalent hand written rules.
+
+Dependencies beyond that set (React, React DOM, Tailwind and its Vite plugin, the shadcn CLI's own dependencies such as `class-variance-authority`, `clsx`, `tailwind-merge` and Radix primitives, and the markdown converter) are an owner call.
 
 ## 4. Where it lives
 
