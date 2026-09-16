@@ -1,3 +1,3 @@
 # Remaining tasks - ui-library-comparison
 
-Nothing outstanding.
+- [ ] Update the resume repo with the latest UI library comparison changes
