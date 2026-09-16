@@ -14,6 +14,9 @@ importers:
       '@types/node':
         specifier: ^26.4.1
         version: 26.4.1
+      axe-core:
+        specifier: ^4.13.0
+        version: 4.13.0
       chrome-launcher:
         specifier: ^1.2.1
         version: 1.2.1
@@ -588,6 +591,24 @@ importers:
       '@uilc/fixture':
         specifier: workspace:*
         version: link:../fixture
+
+  site:
+    devDependencies:
+      '@types/node':
+        specifier: ^26.4.1
+        version: 26.4.1
+      '@uilc/harness':
+        specifier: workspace:*
+        version: link:../packages/harness
+      marked:
+        specifier: ^18.0.13
+        version: 18.0.13
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.0
+        version: 6.4.3(@types/node@26.4.1)(jiti@2.7.0)(lightningcss@1.32.0)(sass@1.103.1)(tsx@4.23.13)
 
 packages:
 
@@ -4640,6 +4661,11 @@ packages:
 
   makeerror@1.0.12:
     resolution: {integrity: sha512-JmqCvUhmt43madlpFzG4BQzG2Z3m6tvQDNKdClZnO3VbIudJYmxsT0FNJMeiB2+JTSlTQTSbU8QdesVmwJcmLg==}
+
+  marked@18.0.13:
+    resolution: {integrity: sha512-xTxVzZsBFwunP6HDmtBkabUQEYArnP7/rMDGmPj9SlrKlQ4i8MdYVow+nJL0eOqwpUqhzBoTBRADGN6uYwPyOw==}
+    engines: {node: '>= 20'}
+    hasBin: true
 
   marky@1.3.0:
     resolution: {integrity: sha512-ocnPZQLNpvbedwTy9kNrQEsknEfgvcLMvOtz3sFeWApDq1MXH1TqkCIx58xlpESsfwQOnuBO9beyQuNGzVvuhQ==}
@@ -11034,6 +11060,8 @@ snapshots:
   makeerror@1.0.12:
     dependencies:
       tmpl: 1.0.5
+
+  marked@18.0.13: {}
 
   marky@1.3.0: {}
 

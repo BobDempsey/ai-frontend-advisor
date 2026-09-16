@@ -4,3 +4,5 @@ dist/
 *.tsbuildinfo
 lighthouse-report.*
 .playwright-mcp/
+site/dist/
+builds/*/dist-site/

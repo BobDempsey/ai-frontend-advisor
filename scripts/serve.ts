@@ -5,7 +5,7 @@
  * browser and neither of which should carry its own copy of the stale-server
  * guard below.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { extname, join, normalize, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
@@ -21,6 +21,22 @@ const CONTENT_TYPES: Record<string, string> = {
   '.woff2': 'font/woff2',
 };
 
+/** Only served in `directories` mode, so the two build callers see no change. */
+const SITE_CONTENT_TYPES: Record<string, string> = {
+  '.webp': 'image/webp',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+};
+
+export interface ServeOptions {
+  /**
+   * Serve a multi-page static site, `site/dist`, rather than one app: a path
+   * ending in `/` gets that folder's `index.html`, with no SPA fallback. Off by
+   * default, which is what `lighthouse.ts` and `screenshots.ts` rely on.
+   */
+  directories?: boolean;
+}
+
 /**
  * Serves one `dist` folder in this process rather than shelling out to
  * `vite preview`. A child process that outlives its kill keeps the port, and
@@ -32,17 +48,28 @@ const CONTENT_TYPES: Record<string, string> = {
  * under Lighthouse's throttling charges each library for compressible weight it
  * would never ship, and charges the biggest bundles most.
  */
-export function serve(distDir: string, port: number): Promise<Server> {
+export function serve(distDir: string, port: number, options: ServeOptions = {}): Promise<Server> {
+  const types = options.directories ? { ...CONTENT_TYPES, ...SITE_CONTENT_TYPES } : CONTENT_TYPES;
   const server = createServer((req, res) => {
     const path = (req.url ?? '/').split('?')[0] ?? '/';
+    const decoded = decodeURIComponent(path).replace(/^\/+/, '');
     // Anything without an extension is a route, so it gets the SPA shell.
-    const relative = extname(path) === '' ? 'index.html' : decodeURIComponent(path).replace(/^\/+/, '');
+    // A multi-page folder instead answers a trailing slash with that folder's
+    // own index.html, and anything else without an extension is a 404.
+    const relative = options.directories
+      ? path.endsWith('/')
+        ? `${decoded}index.html`
+        : decoded
+      : extname(path) === ''
+        ? 'index.html'
+        : decoded;
     const file = join(distDir, normalize(relative));
-    if (!file.startsWith(distDir + sep) || !existsSync(file)) {
+    const missing = !existsSync(file) || (options.directories === true && !statSync(file).isFile());
+    if (!file.startsWith(distDir + sep) || missing) {
       res.writeHead(404).end('not found');
       return;
     }
-    const type = CONTENT_TYPES[extname(file)] ?? 'application/octet-stream';
+    const type = types[extname(file)] ?? 'application/octet-stream';
     const gzip = (req.headers['accept-encoding'] ?? '').includes('gzip');
     const body = readFileSync(file);
     res.writeHead(200, gzip ? { 'content-type': type, 'content-encoding': 'gzip' } : { 'content-type': type });

@@ -1,0 +1,650 @@
+/*
+ * Hand written, no framework, per site spec section 3. Light only, matching the
+ * screen spec. Color marks framework and nothing else: React is blue, Vue is
+ * green, and neither color means good or bad.
+ */
+:root {
+  --ink: #1a1a1a;
+  --muted: #4d4d4d;
+  --line: #d4d4d4;
+  --paper: #ffffff;
+  --panel: #f5f5f4;
+  --link: #0b4f9c;
+  --focus: #1a1a1a;
+  --react: #1d5fa6;
+  --react-light: #b3cbe6;
+  --vue: #1d7348;
+  --vue-light: #b0d8c2;
+  --measure: 72ch;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+a {
+  color: var(--link);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, Menlo, monospace;
+  font-size: 0.9em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 2rem;
+  margin: 0.25rem 0 0.25rem;
+}
+
+.wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  background: var(--paper);
+  padding: 8px 12px;
+  z-index: 10;
+}
+
+.skip:focus {
+  top: 8px;
+}
+
+ul[role='list'] {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header and footer */
+
+.site-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.site-header .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 24px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.brand {
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.site-header ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+
+.site-header a[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration-thickness: 3px;
+}
+
+.site-footer {
+  margin-top: 48px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+main {
+  padding-top: 12px;
+}
+
+.lede {
+  margin: 0 0 12px;
+  max-width: var(--measure);
+}
+
+.muted,
+.note,
+.sub {
+  color: var(--muted);
+}
+
+.note {
+  font-size: 0.875rem;
+  max-width: var(--measure);
+}
+
+/* Kind labels. Text first; the border only frames it. */
+
+.kind {
+  display: inline-block;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  padding: 0 6px;
+  border: 1px solid var(--muted);
+  border-radius: 3px;
+  color: var(--ink);
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.kind-assembly-kit {
+  border-style: dashed;
+  font-weight: 600;
+}
+
+/* Tables */
+
+.table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+caption {
+  text-align: left;
+  color: var(--muted);
+  font-size: 0.875rem;
+  padding: 0 0 6px;
+}
+
+th,
+td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+thead th {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  vertical-align: bottom;
+  border-bottom: 2px solid var(--ink);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+thead th.num {
+  white-space: normal;
+}
+
+tr.group th {
+  background: var(--panel);
+  font-size: 0.875rem;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.scoreboard {
+  min-width: 1000px;
+}
+
+.scoreboard th.lib {
+  font-weight: 600;
+  min-width: 9rem;
+}
+
+.scoreboard .sub {
+  display: block;
+  font-weight: 400;
+  font-size: 0.8125rem;
+}
+
+.scoreboard td.thumb {
+  width: 176px;
+  padding: 4px 8px;
+}
+
+.scoreboard td.thumb a {
+  display: block;
+  width: 160px;
+  line-height: 0;
+}
+
+.scoreboard td.thumb img {
+  display: block;
+  width: 160px;
+  height: 100px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.over-flag {
+  display: inline-block;
+  margin-top: 2px;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  border: 2px dashed var(--ink);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.note-ref {
+  margin-left: 2px;
+  padding: 0 2px;
+}
+
+.fields {
+  max-width: 720px;
+}
+
+.fields th[scope='row'] {
+  font-weight: 400;
+}
+
+.fields th code {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* Build detail */
+
+.crumb {
+  margin: 0;
+}
+
+.status {
+  margin: 12px 0 0;
+  font-size: 1.125rem;
+}
+
+.status-over {
+  border-left: 4px dashed var(--ink);
+  padding-left: 10px;
+}
+
+.status-sub {
+  margin: 4px 0 12px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 12px 0 8px !important;
+}
+
+.shots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.shot {
+  margin: 0;
+}
+
+.shot img {
+  display: block;
+  height: auto;
+  border: 1px solid var(--line);
+  max-width: 100%;
+}
+
+.shot a {
+  display: block;
+}
+
+.shot-1440 {
+  flex: 1 1 640px;
+  max-width: 1080px;
+}
+
+.shot-1440 img {
+  width: 100%;
+}
+
+.shot-375 {
+  flex: 0 1 375px;
+}
+
+.shot figcaption {
+  font-size: 0.875rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.parts li {
+  margin: 2px 0;
+}
+
+.part {
+  display: inline-block;
+  min-width: 4rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.kind-inline {
+  font-size: 1rem;
+  vertical-align: middle;
+}
+
+/* Charts */
+
+.charts {
+  margin-top: 32px;
+}
+
+.category {
+  margin: 28px 0 4px;
+  font-size: 1.25rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-size: 0.875rem;
+  margin: 8px 0 !important;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 22px;
+  height: 12px;
+}
+
+.swatch.fw-react {
+  background: var(--react);
+}
+
+.swatch.fw-vue {
+  background: var(--vue);
+}
+
+.swatch-back {
+  background: linear-gradient(90deg, var(--react-light) 50%, var(--vue-light) 50%);
+}
+
+.swatch-line {
+  width: 3px;
+  height: 16px;
+  background: var(--ink);
+  margin: 0 9px;
+}
+
+.swatch-over {
+  border: 2px dashed var(--ink);
+}
+
+.chart {
+  margin: 12px 0 20px;
+  max-width: 1080px;
+}
+
+.chart figcaption h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.chart figcaption p {
+  margin: 2px 0 6px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  max-width: var(--measure);
+}
+
+.bar-group {
+  margin: 8px 0 2px;
+  font-size: 0.875rem;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(10rem, 15rem) minmax(120px, 1fr) minmax(9rem, 17rem);
+  align-items: center;
+  gap: 4px 12px;
+  padding: 2px 0;
+  font-size: 0.875rem;
+}
+
+.bar-row.is-current {
+  background: var(--panel);
+  outline: 1px solid var(--muted);
+}
+
+.bar-svg {
+  display: block;
+  width: 100%;
+  height: 18px;
+}
+
+.bar-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.bar.fw-react {
+  fill: var(--react);
+}
+
+.bar.fw-vue {
+  fill: var(--vue);
+}
+
+.bar-back.fw-react {
+  fill: var(--react-light);
+}
+
+.bar-back.fw-vue {
+  fill: var(--vue-light);
+}
+
+.bar-over {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.bar-line {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.bar-axis {
+  padding: 0;
+}
+
+.axis-track {
+  position: relative;
+  height: 1.25rem;
+}
+
+.axis-label {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.over {
+  font-weight: 700;
+  border: 2px dashed var(--ink);
+  padding: 0 3px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.this {
+  color: var(--muted);
+}
+
+/* Write-up and spec */
+
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.doc-side {
+  position: sticky;
+  top: 12px;
+  font-size: 0.875rem;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+}
+
+.doc-side h2 {
+  font-size: 0.9375rem;
+  margin: 16px 0 4px;
+}
+
+.doc-side ol,
+.doc-side ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.doc-side li {
+  margin: 3px 0;
+}
+
+.site-note {
+  background: var(--panel);
+  border-left: 4px solid var(--muted);
+  padding: 8px 12px;
+  font-size: 0.9375rem;
+}
+
+.prose {
+  max-width: 80ch;
+  min-width: 0;
+}
+
+.prose h2 {
+  margin-top: 2rem;
+  scroll-margin-top: 12px;
+}
+
+.prose p,
+.prose li {
+  max-width: var(--measure);
+}
+
+.prose pre {
+  background: var(--panel);
+  padding: 12px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+}
+
+.prose .table-wrap {
+  margin: 12px 0;
+}
+
+.prose table {
+  width: auto;
+  font-size: 0.875rem;
+}
+
+.prose th,
+.prose td {
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .doc-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .doc-side {
+    position: static;
+    max-height: none;
+  }
+
+  .bar-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .bar-row .bar-name {
+    grid-column: 1 / -1;
+  }
+
+  .bar-axis > span:first-child,
+  .bar-axis > span:last-child {
+    display: none;
+  }
+
+  .bar-axis .axis-track {
+    grid-column: 1 / 2;
+  }
+
+  h1 {
+    font-size: 1.625rem;
+  }
+}

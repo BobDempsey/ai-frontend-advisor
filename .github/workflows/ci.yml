@@ -112,11 +112,35 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @uilc/${{ matrix.app }} build
 
-  # Only the eight builds publish, alongside the write-up.
+  # The results site, spec/site-spec.md. It builds only from a run where every
+  # criteria suite passed. Where it deploys is still an owner decision (site
+  # spec section 13, open decision 2), so for now the job uploads site/dist as
+  # an artifact and deploys nowhere.
   publish:
     needs: [builds, baselines]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "static site publish goes here once a build exists"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: the site, from results/ and the two markdown files
+        run: pnpm site:build
+      - name: the eight live screens under /screens/<build>/
+        run: pnpm site:screens
+      # Serves site/dist and drives the runner's Chrome. axe-core runs on every
+      # route, the scoreboard, a build detail view, and the write-up included,
+      # and fails on any serious or critical violation. The same script checks
+      # the fold, keyboard focus, and that each screen's assets resolve.
+      - name: axe-core and the site checks
+        run: pnpm site:check
+      - name: the publish left no tracked file changed
+        run: git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: site/dist
