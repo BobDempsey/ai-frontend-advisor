@@ -12,6 +12,7 @@ import { LoaderCircle, RotateCcw, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { QUESTION_LIMIT, WARN_AFTER, markSpent, questionsLeft, recordQuestion } from './quota';
 import { ChatToggle } from './toggle';
 import { asHistory, clearConversation, readConversation, writeConversation, type Entry } from './store';
 
@@ -52,9 +53,15 @@ async function ask(message: string, history: Entry[]): Promise<Entry> {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ message, history: asHistory(history) }),
     });
+    if (response.status === 429) markSpent();
     const body = (await response.json().catch(() => ({}))) as { reply?: unknown; error?: unknown };
     if (response.ok && typeof body.reply === 'string') return { role: 'assistant', content: body.reply };
-    const error = typeof body.error === 'string' ? body.error : 'The assistant could not answer just now. Try again later.';
+    const error =
+      typeof body.error === 'string'
+        ? body.error
+        : response.status === 429
+          ? 'You have used all your questions for now. Try again in a few minutes.'
+          : 'The assistant could not answer just now. Try again later.';
     return { role: 'assistant', content: error, failed: true };
   } catch {
     return { role: 'assistant', content: 'The assistant could not be reached. Check your connection and try again.', failed: true };
@@ -66,6 +73,7 @@ export function ChatIsland({ initialOpen = false }: { initialOpen?: boolean }) {
   const [entries, setEntries] = useState<Entry[]>(() => (initialOpen ? readConversation() : []));
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState(false);
+  const [left, setLeft] = useState(() => questionsLeft());
   const composer = useRef<HTMLTextAreaElement>(null);
   const endOfList = useRef<HTMLDivElement | null>(null);
 
@@ -91,16 +99,27 @@ export function ChatIsland({ initialOpen = false }: { initialOpen?: boolean }) {
     if (open) endOfList.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
   }, [entries, pending, open]);
 
+  // Old questions age out while the drawer is open, so the count can recover.
+  useEffect(() => {
+    if (!open) return undefined;
+    setLeft(questionsLeft());
+    const timer = window.setInterval(() => setLeft(questionsLeft()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [open]);
+
   const send = async (text: string) => {
     const message = text.trim().slice(0, MAX_CHARS);
-    if (!message || pending) return;
+    if (!message || pending || questionsLeft() === 0) return;
     const before = entries;
+    recordQuestion();
+    setLeft(questionsLeft());
     const said: Entry[] = [...before, { role: 'user', content: message }];
     remember(said);
     setDraft('');
     setPending(true);
     const reply = await ask(message, before);
     setPending(false);
+    setLeft(questionsLeft());
     remember([...said, reply]);
     composer.current?.focus();
   };
@@ -220,12 +239,19 @@ export function ChatIsland({ initialOpen = false }: { initialOpen?: boolean }) {
               onKeyDown={onKeyDown}
               className="max-h-40 min-h-16 resize-none"
             />
-            <Button type="submit" size="icon" disabled={pending || draft.trim().length === 0} aria-label="Send">
+            <Button type="submit" size="icon" disabled={pending || left === 0 || draft.trim().length === 0} aria-label="Send">
               {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <Send aria-hidden="true" />}
             </Button>
           </div>
           <p id="chat-hint" className="text-xs text-muted-foreground">
             Enter sends, Shift+Enter adds a line. {draft.length} of {MAX_CHARS} characters.
+          </p>
+          <p className="chat-quota text-xs font-medium" role="status">
+            {QUESTION_LIMIT - left < WARN_AFTER
+              ? null
+              : left === 0
+                ? 'You have used all your questions for now. Try again in a few minutes.'
+                : `${left} ${left === 1 ? 'question' : 'questions'} remaining.`}
           </p>
         </form>
       </SheetContent>

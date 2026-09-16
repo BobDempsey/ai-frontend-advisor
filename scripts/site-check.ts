@@ -319,7 +319,11 @@ async function checkChat(browser: Browser, route: string, width: number, height:
     });
 
     await page.goto(`${ORIGIN}${route}`, { waitUntil: 'networkidle0' });
-    await page.evaluate(() => sessionStorage.clear());
+    // Four questions already asked in this browser, so the next one is the fifth.
+    await page.evaluate(() => {
+      sessionStorage.clear();
+      localStorage.setItem('uilc-chat-quota', JSON.stringify([Date.now(), Date.now(), Date.now(), Date.now()]));
+    });
     await page.waitForSelector('.chat-toggle', { visible: true, timeout: 10000 });
     // The chat island, React included, must wait for the reader to reach for it.
     if (islandRequested) fail(`${label}: the chat island loaded before anyone used the button`);
@@ -403,6 +407,8 @@ async function checkChat(browser: Browser, route: string, width: number, height:
       field: (document.querySelector('#chat-input') as HTMLTextAreaElement | null)?.value,
     }));
     if (after.leaked > 0) fail(`${label}: raw HTML from the answer was rendered`);
+    const quota = await page.$eval('.chat-quota', (el) => el.textContent ?? '').catch(() => '');
+    if (quota !== '5 questions remaining.') fail(`${label}: after the fifth question the drawer said ${JSON.stringify(quota)}`);
     if (after.field !== '') fail(`${label}: the field kept ${JSON.stringify(after.field)} after sending`);
     await page.waitForFunction(() => document.activeElement?.id === 'chat-input', { timeout: 5000 }).catch(() => undefined);
     if (!(await activeMatches(page, '#chat-input'))) fail(`${label}: focus left the question field after the answer`);
