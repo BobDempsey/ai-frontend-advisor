@@ -148,22 +148,22 @@ One caveat on the imports column, and it matters. The measurement counts explici
 
 ## Time to first render
 
-Lighthouse first contentful paint on the static build, median of five runs, taken by `pnpm lighthouse` and read back into `results/` by `pnpm measure`.
+Lighthouse first contentful paint on the deployed static build, median of five runs, taken by `pnpm lighthouse --url` against https://ui-library-comparison.bobdempsey83.com and read back into `results/` by `pnpm measure`.
 
 | Library | Framework | Median FCP | Delta gzip |
 | --- | --- | --- | --- |
-| Headless UI | React | 1512 ms | 44.90 KB |
-| shadcn/ui | React | 1526 ms | 58.89 KB |
-| Material UI | React | 1657 ms | 79.76 KB |
-| Quasar | Vue | 1672 ms | 91.71 KB |
-| Chakra UI | React | 1705 ms | 97.81 KB |
-| Vuetify | Vue | 1849 ms | 128.87 KB |
-| PrimeVue | Vue | 2019 ms | 150.20 KB |
-| Ant Design | React | 2405 ms | 233.87 KB |
+| Headless UI | React | 1378 ms | 44.90 KB |
+| shadcn/ui | React | 1390 ms | 58.89 KB |
+| Material UI | React | 1526 ms | 79.76 KB |
+| Quasar | Vue | 1565 ms | 91.71 KB |
+| Chakra UI | React | 1653 ms | 97.81 KB |
+| Vuetify | Vue | 1741 ms | 128.87 KB |
+| PrimeVue | Vue | 1745 ms | 150.20 KB |
+| Ant Design | React | 2277 ms | 233.87 KB |
 
-The order is the bundle order, exactly. Nothing on this screen paints before its library parses, so first render is bundle size read through Lighthouse's mobile throttling rather than an independent finding. The useful figure is the spread: 900 ms between the lightest build and the heaviest, on a simulated mid-tier phone, for eight screens a user cannot tell apart.
+The order is the bundle order, exactly. Nothing on this screen paints before its library parses, so first render is bundle size read through Lighthouse's mobile throttling rather than an independent finding. The useful figure is the spread: about 900 ms between the lightest build and the heaviest, on a simulated mid-tier phone, for eight screens a user cannot tell apart.
 
-Read these as relative. They were taken on one Windows machine against a local server that gzips what it serves, matching how the bundle numbers are measured, and Lighthouse's mobile preset throttles CPU and network to a fixed profile. The five runs per build agreed within about 10 ms, so the ranking is stable even though the absolute milliseconds are not a claim about any real device.
+Read these as relative. They were taken on 2026-09-16 from one Windows machine against the deployed site on Vercel, which serves compressed assets the way the bundle numbers are measured, and Lighthouse's mobile preset throttles CPU and network to a fixed profile. The first run for a build was sometimes up to 150 ms slower than the other four, which reads as a cold edge cache, and the median absorbs it. The ranking is stable even though the absolute milliseconds are not a claim about any real device. An earlier set taken against a local server ran 50 to 270 ms higher and gave the same order.
 
 ## Picking one
 
@@ -187,7 +187,7 @@ axe-core ran under jsdom, where `HTMLCanvasElement.getContext` is not implemente
 
 The manual screen reader pass in section 9, NVDA on Windows and VoiceOver on macOS through filter, sort, page, open, edit, and save, has not been done. Nothing here substitutes for it.
 
-The render numbers came from a local static server on one Windows machine, not from a deployed site. The spec asks for the deployed build, and nothing is deployed yet. The ranking should hold, since it is the bundle ranking, but the milliseconds would move on other hardware.
+The render numbers came from one Windows machine driving Lighthouse against the deployed site. The ranking should hold, since it is the bundle ranking, but the milliseconds would move on other hardware and from other networks.
 
 The screens were reviewed at 1440px in their default state. Nobody has yet walked all eight through an open modal, a fired toast, or a narrow viewport, so defects in those states are still unfound.
 

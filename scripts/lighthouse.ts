@@ -3,6 +3,12 @@
  *
  *   pnpm lighthouse --build react-shadcn
  *   pnpm lighthouse --all
+ *   pnpm lighthouse --all --url https://ui-library-comparison.bobdempsey83.com
+ *
+ * With `--url`, the runs target the deployed screen at
+ * `<url>/screens/<name>/` instead of a local server, which is the measurement
+ * section 10 asks for once a deployed site exists. The file then also records
+ * that URL, so a later local run replacing it shows up in the diff.
  *
  * Section 10 asks for Lighthouse on the static build, median of 5 runs. This
  * serves `builds/<name>/dist` and drives Lighthouse against it, then writes
@@ -89,13 +95,23 @@ async function firstContentfulPaint(url: string): Promise<number> {
   }
 }
 
-export async function runBuild(build: string): Promise<number[]> {
+export async function runBuild(build: string, origin?: string): Promise<number[]> {
   if (!ROSTER[build]) throw new Error(`${build} is not one of the eight. Known: ${Object.keys(ROSTER).join(', ')}`);
 
   const dir = join(root, 'builds', build);
   const distDir = join(dir, 'dist');
   if (!existsSync(join(distDir, 'index.html'))) {
     throw new Error(`builds/${build}/dist is missing. Run pnpm --filter @uilc/${build} build first`);
+  }
+
+  if (origin) {
+    const url = `${origin.replace(/\/+$/, '')}/screens/${build}/`;
+    await assertServingBuild(url, distDir);
+    const fcpMs: number[] = [];
+    for (let i = 0; i < RUNS; i += 1) fcpMs.push(await firstContentfulPaint(url));
+    writeFileSync(join(dir, 'lighthouse.json'), `${JSON.stringify({ url, fcpMs }, null, 2)}
+`, 'utf8');
+    return fcpMs;
   }
 
   const server = await serve(distDir, PORT);
@@ -120,17 +136,19 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const all = args.includes('--all');
   const flagged = args[args.indexOf('--build') + 1];
+  const urlIndex = args.indexOf('--url');
+  const origin = urlIndex === -1 ? undefined : args[urlIndex + 1];
   const targets = all ? Object.keys(ROSTER) : [flagged].filter((n): n is string => Boolean(n) && n !== '--all');
 
   if (targets.length === 0) {
-    console.error('usage: tsx scripts/lighthouse.ts --build <name> | --all');
+    console.error('usage: tsx scripts/lighthouse.ts --build <name> | --all [--url <origin>]');
     process.exit(1);
   }
 
   let failed = 0;
   for (const build of targets) {
     try {
-      const fcpMs = await runBuild(build);
+      const fcpMs = await runBuild(build, origin);
       console.log(`${build}: ${median(fcpMs)} ms median FCP over ${fcpMs.length} runs (${fcpMs.join(', ')})`);
     } catch (error) {
       failed += 1;

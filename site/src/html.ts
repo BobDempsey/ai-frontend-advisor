@@ -59,11 +59,11 @@ export function runsOf(builds: Build[]): string {
 }
 
 /**
- * Site spec section 8: the local measurement caveat goes wherever a first
+ * Site spec section 8: the measurement caveat goes wherever a first
  * render figure appears. The run count is read from the result files.
  */
 export function renderCaveat(builds: Build[]): string {
-  return `First render is the median of ${esc(runsOf(builds))} Lighthouse runs, taken from a local server on one Windows machine. It should be retaken once the site is deployed somewhere with a URL, and until then this caveat is part of the number.`;
+  return `First render is the median of ${esc(runsOf(builds))} Lighthouse runs, taken from one Windows machine against this deployed site on 2026-09-16. The figures are relative: Lighthouse throttles to a simulated mid-tier phone, and other hardware or networks would move the milliseconds.`;
 }
 
 /** The budget as the screen spec writes it, a whole number of KB. */
