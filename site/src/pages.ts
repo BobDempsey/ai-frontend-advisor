@@ -88,6 +88,41 @@ function scoreboardRow(build: Build, budgetKb: number): string {
 }
 
 /**
+ * The write-up's per situation picks, shortened for the TL;DR. Each one names
+ * the bold lead of its paragraph under "Picking one", and the build fails if
+ * that paragraph is gone or no longer names every library listed here, so the
+ * summary cannot drift from the article it condenses.
+ */
+const PICKS: { lead: string; use: string; builds: string[]; verb: string }[] = [
+  { lead: 'When shipping speed matters most', use: 'Shipping fast', verb: 'take a suite:', builds: ['react-chakra', 'react-mui'] },
+  { lead: 'When bundle size is the binding constraint', use: 'Smallest bundle', verb: 'take an assembly kit:', builds: ['react-headless', 'react-shadcn'] },
+  { lead: "When the design system is going to diverge from the library's defaults", use: 'Custom design system', verb: '', builds: ['react-shadcn'] },
+  { lead: 'On Vue, Quasar is the cheapest of the three', use: 'Vue', verb: 'lightest of the three:', builds: ['vue-quasar'] },
+  { lead: 'Ant Design is hard to justify on a bundle sensitive screen', use: 'Bundle sensitive screen', verb: 'hard to justify:', builds: ['react-antd'] },
+];
+
+function picks(data: SiteData): string {
+  const section = /^## Picking one\n([\s\S]*?)^## /m.exec(data.writeUp)?.[1];
+  if (!section) throw new Error('write-up/README.md has no "Picking one" section for the scoreboard TL;DR');
+  const paragraphs = section.split(/\n\s*\n/);
+  const items = PICKS.map((pick) => {
+    const paragraph = paragraphs.find((p) => p.trim().startsWith(`**${pick.lead}`));
+    if (!paragraph) throw new Error(`write-up "Picking one" has no paragraph starting "${pick.lead}"`);
+    const links = pick.builds.map((name) => {
+      const build = data.builds.find((b) => b.name === name);
+      if (!build) throw new Error(`TL;DR pick names unknown build ${name}`);
+      if (!paragraph.includes(build.roster.library)) {
+        throw new Error(`write-up paragraph "${pick.lead}" no longer names ${build.roster.library}`);
+      }
+      return `<a href="${detailHref('', name)}">${esc(build.roster.library)}</a>`;
+    });
+    const verb = pick.verb ? `${esc(pick.verb)} ` : '';
+    return `<li><strong>${esc(pick.use)}:</strong> ${verb}${links.join(', then ')}</li>`;
+  });
+  return `<ul class="picks">\n${items.join('\n')}\n</ul>`;
+}
+
+/**
  * The scoreboard's short summary. Every figure is read from the result files,
  * and nothing here names a winner or ranks all eight on anything but delta.
  */
@@ -117,7 +152,9 @@ function summary(data: SiteData): string {
 <li>Library cost over the framework baseline runs from ${esc(kb(lightest.result.bundle.deltaGzipKb))} (${esc(lightest.roster.library)}) to ${esc(kb(heaviest.result.bundle.deltaGzipKb))} (${esc(heaviest.roster.library)}), gzipped.</li>
 <li>${overLine}</li>
 <li>Median first render runs from ${esc(ms(Math.min(...fcp)))} to ${esc(ms(Math.max(...fcp)))}.<a class="note-ref" href="#render-note" aria-label="Note on first render">*</a></li>
-<li>No winner. Assembly kits trade application code for bundle size, and suites ship more finished parts; the <a href="write-up/">write-up</a> says which fits when.</li>
+<li>No single winner. The pick depends on the use case (from the <a href="write-up/#picking-one">write-up</a>):
+${picks(data)}
+</li>
 </ul>
 </section>`;
 }

@@ -727,3 +727,7 @@ tr.group th {
 .theme-toggle[hidden] {
   display: none;
 }
+
+.tldr .picks {
+  margin: 2px 0 0;
+}
