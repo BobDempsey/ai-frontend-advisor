@@ -21,7 +21,7 @@ All eight builds pass all 18 acceptance criteria. Sorted by bundle cost.
 | PrimeVue | Vue | suite | 150.20 KB | 174.41 KB | 1745 ms | 4 | toast |
 | Ant Design | React | suite | 233.87 KB | 278.78 KB | 2277 ms | 5 | toast |
 
-Delta is the total minus an empty app on the same framework, 44.91 KB for React and 24.21 KB for Vue, and it is the number the comparison is about. The 240 fixture rows load through a dynamic import and are excluded, as section 10 of the spec requires. Median FCP is Lighthouse first contentful paint, median of five runs, written by `pnpm lighthouse` and read back by `pnpm measure`. Custom code counts how many of section 9's accessibility requirements the library did not supply.
+Delta is the total minus an empty app on the same framework, 44.91 KB for React and 24.21 KB for Vue, and it is the number the comparison is about. The 240 fixture rows load through a dynamic import and are excluded, as section 10 of the spec requires. Median FCP is Lighthouse first contentful paint, median of five runs against the deployed demos, written by `pnpm lighthouse --url` and read back by `pnpm measure`. Custom code counts how many of section 9's accessibility requirements the library did not supply.
 
 Ant Design is the only build over the 180 KB budget. Its `Table` alone costs roughly 247 KB gzip with React, because `rc-table` pulls in `rc-virtual-list` unconditionally. That is a library weight finding, not an implementation shortfall.
 
@@ -40,6 +40,9 @@ Two differences are recorded rather than normalized: badge label casing varies b
 | `builds/*` | the eight implementations |
 | `baselines/*` | an empty React and Vue app, the floor each delta subtracts |
 | `results/*.json` | one scored result per build |
+| `write-up/README.md` | the article |
+| `site/` | the results site: React and shadcn/ui rendered to static HTML at build time, specified in `spec/site-spec.md` |
+| `scripts/` | scaffolding, scoring, Lighthouse, screenshots, and the site's screens build and browser checks |
 
 ## Commands
 
@@ -47,12 +50,27 @@ Two differences are recorded rather than normalized: badge label casing varies b
 pnpm install
 pnpm build               # all ten apps
 pnpm test                # the 18 criteria in every build
-pnpm lighthouse --all    # first contentful paint, five runs per build
-pnpm typecheck           # the three shared packages
+pnpm lighthouse --all --url https://ui-library-comparison.bobdempsey83.com
+                         # first contentful paint, five runs per deployed build
+pnpm typecheck           # the three shared packages and the site
+pnpm lint                # Biome lint over builds/, report only
+pnpm format:check        # Biome format check over builds/, report only
 pnpm measure --all       # rescore every build into results/
 pnpm fixture:check       # check what the criteria assume about the fixture
 pnpm fixture:generate    # regenerate the 240 tickets, then check them
 ```
+
+The results site builds and checks with its own root scripts:
+
+```
+pnpm site:build          # site/dist, one static HTML file per view
+pnpm site:screens        # rebuild the eight apps under site/dist/screens/ (run after site:build)
+pnpm site:check          # axe, keyboard, fold, theme, and screen checks in Chrome
+pnpm site:dev            # local dev server on port 5190
+pnpm screenshots --all   # recapture the sixteen committed screenshots, by hand
+```
+
+Vercel builds the site from `main` on every push, using `vercel.json`. The scoreboard follows the reader's system color scheme and has a light and dark toggle in the navbar; every other page stays light.
 
 `tickets.json` is committed and the seed is fixed, so regenerating produces the same file. If it does not, the earlier bundle numbers stop comparing and the run starts over.
 
