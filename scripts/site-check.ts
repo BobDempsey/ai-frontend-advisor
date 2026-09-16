@@ -301,7 +301,9 @@ async function checkChat(browser: Browser, route: string, width: number, height:
     const sent: { method: string; body: unknown }[] = [];
     page.on('pageerror', (e) => errors.push(String(e)));
     await page.setRequestInterception(true);
+    let islandRequested = false;
     page.on('request', (request) => {
+      if (/\/assets\/island-[^/]*\.js$/.test(new URL(request.url()).pathname)) islandRequested = true;
       if (new URL(request.url()).pathname.startsWith('/api/chat')) {
         let body: unknown;
         try {
@@ -319,6 +321,8 @@ async function checkChat(browser: Browser, route: string, width: number, height:
     await page.goto(`${ORIGIN}${route}`, { waitUntil: 'networkidle0' });
     await page.evaluate(() => sessionStorage.clear());
     await page.waitForSelector('.chat-toggle', { visible: true, timeout: 10000 });
+    // The chat island, React included, must wait for the reader to reach for it.
+    if (islandRequested) fail(`${label}: the chat island loaded before anyone used the button`);
 
     const open = async () => {
       await page.focus('.chat-toggle');

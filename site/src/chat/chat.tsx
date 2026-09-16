@@ -1,17 +1,18 @@
 /**
- * The chat island: a floating button, and a drawer holding the conversation.
+ * The chat island: the navbar button, and a drawer holding the conversation.
  * spec/site-spec.md section 14. It is the only React that reaches the
- * browser, mounted by `main.tsx` onto the shell's placeholder.
+ * browser, loaded on first use by `main.ts` and mounted by `island.tsx`.
  *
  * The drawer is portaled into <body>, so it takes the page's colors: dark only
  * where the scoreboard's theme script has put `dark` on <html>.
  */
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
-import { LoaderCircle, MessageCircleQuestion, RotateCcw, Send } from 'lucide-react';
+import { LoaderCircle, RotateCcw, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
+import { ChatToggle } from './toggle';
 import { asHistory, clearConversation, readConversation, writeConversation, type Entry } from './store';
 
 /** The function's own limit; the server cuts anything longer anyway. */
@@ -60,9 +61,9 @@ async function ask(message: string, history: Entry[]): Promise<Entry> {
   }
 }
 
-export function ChatIsland() {
-  const [open, setOpen] = useState(false);
-  const [entries, setEntries] = useState<Entry[]>([]);
+export function ChatIsland({ initialOpen = false }: { initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen);
+  const [entries, setEntries] = useState<Entry[]>(() => (initialOpen ? readConversation() : []));
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState(false);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -126,14 +127,7 @@ export function ChatIsland() {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Ask about this comparison" title="Ask about this comparison" className="chat-toggle relative">
-          <MessageCircleQuestion aria-hidden="true" />
-          {/* A live status dot. It stops pulsing for readers who ask for reduced motion. */}
-          <span aria-hidden="true" className="pointer-events-none absolute top-1 right-1 flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-500 opacity-75 motion-reduce:animate-none" />
-            <span className="relative inline-flex size-2 rounded-full bg-green-500" />
-          </span>
-        </Button>
+        <ChatToggle />
       </SheetTrigger>
 
       <SheetContent

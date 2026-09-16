@@ -8,7 +8,7 @@
  * entry per view, so the output is plain files with relative links. The pages
  * are rendered here and never hydrate. Two scripts ship: the scoreboard's
  * inline theme toggle, see `src/theme.ts`, and the chat island every page
- * loads from `src/chat/main.tsx`, which mounts its own React root on the
+ * loads from `src/chat/main.ts`, which mounts its own React root on the
  * shell's `#chat-root` and posts to `/api/chat/`. Tailwind compiles `src/styles.css` into the one
  * stylesheet. `base: './'` keeps every asset URL relative, so the folder
  * deploys to any host at any path.
@@ -22,6 +22,9 @@ import { loadSiteData, type SiteData } from './src/data';
 import { allPages, nav, relFor, themeToggleHtml, type Page } from './src/pages';
 import { esc } from './src/html';
 import { THEME_SCRIPT } from './src/theme';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { ChatToggle } from './src/chat/toggle';
 
 const siteDir = fileURLToPath(new URL('.', import.meta.url));
 const repoRoot = join(siteDir, '..');
@@ -44,6 +47,8 @@ function fill(shell: string, page: Page): string {
     htmlClass: page.theme === 'auto' ? 'theme-auto' : 'theme-light',
     headScript: page.theme === 'auto' ? THEME_SCRIPT : '',
     navExtra: page.theme === 'auto' ? themeToggleHtml() : '',
+    // Hidden until `src/chat/main.ts` runs, so a page without script shows no dead control.
+    chatButton: renderToStaticMarkup(createElement(ChatToggle, { hidden: true })),
   };
   return shell.replace(/<!--site:(\w+)-->/g, (_, name: string) => {
     const value = slots[name];
