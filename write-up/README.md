@@ -130,19 +130,19 @@ Counted, not judged. Four numbers per build, with the conclusion drawn in prose 
 | Library | App lines | Library imports | Type escapes | Modal | Select | Toast |
 | --- | --- | --- | --- | --- | --- | --- |
 | Chakra UI | 904 | 9 | 0 | library | library | library |
-| Quasar | 910 | 1 | 0 | library | library | hand built |
-| PrimeVue | 955 | 18 | 0 | library | library | hand built |
-| Vuetify | 957 | 2 | 0 | library | library | hand built |
+| Quasar | 916 | 1 | 0 | library | library | hand built |
+| PrimeVue | 957 | 18 | 0 | library | library | hand built |
+| Vuetify | 958 | 2 | 0 | library | library | hand built |
 | Material UI | 991 | 8 | 0 | library | library | hand built |
-| Ant Design | 992 | 9 | 0 | library | library | hand built |
+| Ant Design | 1029 | 9 | 0 | library | library | hand built |
 | Headless UI | 1107 | 3 | 0 | library | hand built | hand built |
-| shadcn/ui | 1440 | 21 | 0 | hand built | hand built | hand built |
+| shadcn/ui | 1445 | 21 | 0 | hand built | hand built | hand built |
 
 No build needed a single `any` or type assertion. That is the one category where all eight tie, and it says something about where typed component libraries have landed.
 
 The clearest finding in this table is the toast column. Seven of eight libraries could not supply the notification behavior the spec asks for, which is a stack of up to three, oldest evicted first, each announced in a live region and dismissible with Escape. Material UI's `Snackbar` is single slot. Quasar's `$q.notify()` and Ant Design's `message` do not match the eviction rule. Even Chakra, the one build that used its library's toast, had to layer hand written eviction on top, because Ark UI's `max` option queues rather than evicts. A capped, ordered toast stack is apparently still application code.
 
-The two assembly kits sit at the bottom on line count, and that is the trade rather than a loss. shadcn/ui writes the most application code by a distance at 1440 lines, because the table, the multi-selects, and the toasts are all in the repo rather than in `node_modules`. Radix's `Select` is single value only, so the multi-selects were assembled from `DropdownMenu` and `Checkbox`. Those lines are the point of the approach: they are editable, and they are the reason its delta is the second smallest.
+The two assembly kits sit at the bottom on line count, and that is the trade rather than a loss. shadcn/ui writes the most application code by a distance at 1445 lines, because the table, the multi-selects, and the toasts are all in the repo rather than in `node_modules`. Radix's `Select` is single value only, so the multi-selects were assembled from `DropdownMenu` and `Checkbox`. Those lines are the point of the approach: they are editable, and they are the reason its delta is the second smallest.
 
 One caveat on the imports column, and it matters. The measurement counts explicit `import` statements only. Quasar and Vuetify resolve `<q-select>` and `<v-btn>` from template tags at build time through their Vite plugins, so their counts of 1 and 2 undercount real library usage badly. Read that column for the React builds and ignore it for those two.
 
@@ -171,7 +171,7 @@ No winner. The numbers publish and the choice depends on the situation.
 
 **When shipping speed matters most, take a suite.** Chakra UI is the strongest showing here: the fewest application lines at 904, the only build where the modal, select, and toast all came from the library, zero axe violations, and a 97.81 KB delta. Material UI is close behind and needed the least accessibility help of any build.
 
-**When bundle size is the binding constraint, take an assembly kit.** Headless UI's 44.90 KB delta is roughly half the median, and shadcn/ui's 58.89 KB is the next smallest. Both cost real application code for it, 1107 and 1440 lines against a 904 line floor.
+**When bundle size is the binding constraint, take an assembly kit.** Headless UI's 44.90 KB delta is roughly half the median, and shadcn/ui's 58.89 KB is the next smallest. Both cost real application code for it, 1107 and 1445 lines against a 904 line floor.
 
 **When the design system is going to diverge from the library's defaults, take shadcn/ui.** Its components are files in the repo. Every other build here customizes through a theme API and stops where that API stops.
 
@@ -189,7 +189,7 @@ The manual screen reader pass in section 9, NVDA on Windows and VoiceOver on mac
 
 The render numbers came from one Windows machine driving Lighthouse against the deployed site. The ranking should hold, since it is the bundle ranking, but the milliseconds would move on other hardware and from other networks.
 
-The screens were reviewed at 1440px in their default state. Nobody has yet walked all eight through an open modal, a fired toast, or a narrow viewport, so defects in those states are still unfound.
+All eight screens were walked in one browser, Chromium, at 1440px and 375px: search, both filters, sorting, paging, the edit modal, a save, and the toast cap. The defects that turned up were fixed. Other browsers and other widths were not checked, so defects there may still be unfound.
 
 Two visible differences between builds were deliberately left in place rather than normalized. Badge label casing varies, and only shadcn/ui renders a page heading, which the spec never asked for. Both are library defaults showing through, and that is exactly what this comparison exists to record.
 
