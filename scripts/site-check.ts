@@ -375,17 +375,13 @@ async function checkChat(browser: Browser, route: string, width: number, height:
 
     // The advisor's wording: the dialog is named by its title, and an empty
     // conversation offers the three starting points as buttons.
+    // No named helper inside evaluate: tsx wraps named functions in a `__name`
+    // call that does not exist in the page.
     const wording = await page.evaluate(() => {
       const dialog = document.querySelector('[role="dialog"]');
-      const byId = (ids: string | null | undefined) =>
-        (ids ?? '')
-          .split(/\s+/)
-          .map((id) => document.getElementById(id)?.textContent?.trim() ?? '')
-          .join(' ')
-          .trim();
       return {
-        title: byId(dialog?.getAttribute('aria-labelledby')),
-        description: byId(dialog?.getAttribute('aria-describedby')),
+        title: document.getElementById(dialog?.getAttribute('aria-labelledby') ?? '')?.textContent?.trim() ?? '',
+        description: document.getElementById(dialog?.getAttribute('aria-describedby') ?? '')?.textContent?.trim() ?? '',
         suggestions: [...(dialog?.querySelectorAll('.chat-log button') ?? [])].map((b) => b.textContent?.trim() ?? ''),
         toggle: document.querySelector('.chat-toggle')?.getAttribute('aria-label') ?? '',
       };
