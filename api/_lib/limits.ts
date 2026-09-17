@@ -12,8 +12,12 @@ export const MAX_MESSAGE_CHARS = 1000;
  */
 export const MAX_HISTORY_ANSWER_CHARS = 4000;
 
-/** How many earlier messages go back to the model, counting each side's message as one turn. */
-export const MAX_HISTORY_TURNS = 6;
+/**
+ * How many earlier messages go back to the model, counting each side's message
+ * as one turn. Ten keeps a reader's answers to the advisor's intake questions
+ * in view two follow-ups later (advisor spec section 5).
+ */
+export const MAX_HISTORY_TURNS = 10;
 
 /**
  * The model's output ceiling, reasoning included. A short answer needs a few

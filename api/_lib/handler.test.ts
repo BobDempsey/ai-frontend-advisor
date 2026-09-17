@@ -40,12 +40,12 @@ describe('createChatHandler', () => {
 
   it('sends the trimmed history before the capped question', async () => {
     const { handle, calls } = setup();
-    const history = Array.from({ length: 9 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: `m${i}` }));
+    const history = Array.from({ length: 13 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: `m${i}` }));
     await handle(post({ message: 'q'.repeat(1500), history: [{ role: 'system', content: 'x' }, ...history] }));
     const turns = calls[0]?.turns ?? [];
-    expect(turns).toHaveLength(7);
-    expect(turns.slice(0, 6).map((t) => t.content)).toEqual(['m3', 'm4', 'm5', 'm6', 'm7', 'm8']);
-    expect(turns[6]).toEqual({ role: 'user', content: 'q'.repeat(1000) });
+    expect(turns).toHaveLength(11);
+    expect(turns.slice(0, 10).map((t) => t.content)).toEqual(['m3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11', 'm12']);
+    expect(turns[10]).toEqual({ role: 'user', content: 'q'.repeat(1000) });
   });
 
   it('builds the system prompt once and reuses it', async () => {

@@ -13,11 +13,11 @@ describe('capMessage', () => {
 });
 
 describe('trimHistory', () => {
-  it('keeps only the last six turns', () => {
-    const raw = Array.from({ length: 10 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: `m${i}` }));
+  it('keeps only the last ten turns', () => {
+    const raw = Array.from({ length: 14 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', content: `m${i}` }));
     const kept = trimHistory(raw);
-    expect(MAX_HISTORY_TURNS).toBe(6);
-    expect(kept.map((t) => t.content)).toEqual(['m4', 'm5', 'm6', 'm7', 'm8', 'm9']);
+    expect(MAX_HISTORY_TURNS).toBe(10);
+    expect(kept.map((t) => t.content)).toEqual(['m4', 'm5', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11', 'm12', 'm13']);
   });
 
   it('drops anything that is not a user or assistant message with text', () => {
