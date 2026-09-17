@@ -36,6 +36,11 @@ const pageKey = (id: string): string | undefined => {
   return normal.startsWith(siteRoot) ? normal.slice(siteRoot.length) : undefined;
 };
 
+const ANALYTICS_SCRIPT = [
+  '<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>',
+  '<script defer src="/_vercel/insights/script.js"></script>',
+].join('\n');
+
 function fill(shell: string, page: Page): string {
   const slots: Record<string, string> = {
     title: esc(page.title),
@@ -47,6 +52,9 @@ function fill(shell: string, page: Page): string {
     htmlClass: page.theme === 'auto' ? 'theme-auto' : 'theme-light',
     headScript: page.theme === 'auto' ? THEME_SCRIPT : '',
     navExtra: page.theme === 'auto' ? themeToggleHtml() : '',
+    // Vercel Web Analytics, site spec section 12. Vercel serves the script, so it is
+    // left out of local builds, where it would 404.
+    analytics: process.env.VERCEL ? ANALYTICS_SCRIPT : '',
     // Hidden until `src/chat/main.ts` runs, so a page without script shows no dead control.
     chatButton: renderToStaticMarkup(createElement(ChatToggle, { hidden: true })),
   };

@@ -34,7 +34,7 @@ How it is used:
 - shadcn/ui components are copied into `site/src/components/ui/` by the shadcn CLI, the way `builds/react-shadcn` has them, and the site owns those files. The site never imports from `builds/`.
 - Pages are React components rendered with `renderToStaticMarkup` at build time, one HTML file per view, as before. Nothing hydrates. The one exception is the chat island in section 14, which ships React to the browser and mounts its own root beside the static page.
 - Only components that work as static markup are used on the pages: Card, Table, Badge, Button, Separator, and similar. Anything that needs client side state to function (Tabs, Dialog, Tooltip, DropdownMenu) is out, because there is no hydration to drive it. The chat island is the exception, and it uses Sheet and Textarea.
-- The site has two scripts: the scoreboard's light and dark toggle, which switches shadcn's `dark` class on the root element, and the chat island of section 14.
+- The site has three scripts: the scoreboard's light and dark toggle, which switches shadcn's `dark` class on the root element, the chat island of section 14, and Vercel Web Analytics on every page (section 12).
 - Tailwind CSS compiles at build time. Its output is the site's stylesheet.
 - Charts stay inline SVG written here, colored with shadcn's chart tokens. The shadcn chart component depends on Recharts rendering in the browser, which a static page does not do, and a horizontal bar per build still does not need a library.
 - The build-time markdown converter stays. Its output is styled with Tailwind's typography plugin or equivalent hand written rules.
@@ -60,7 +60,7 @@ The root `build` script filters `./builds/*` and `./baselines/*`, so `site/` sta
 
 ## 5. What the site reads
 
-Every view is built from files already committed. No runtime fetch of anything outside the deployed output, with one exception: the chat island posts to `/api/chat/` on the same origin (section 14).
+Every view is built from files already committed. No runtime fetch of anything outside the deployed output, with two exceptions: the chat island posts to `/api/chat/` on the same origin (section 14), and Vercel Web Analytics loads `/_vercel/insights/script.js` and posts page views on the same origin (section 12).
 
 - `results/<build>.json`, eight files, the shape `scripts/measure.ts` writes: `bundle`, `accessibility`, `ergonomics`, `render`, and `criteria`. This is the source for every number on the site.
 - `scripts/roster.ts` for each build's library name, framework, and kind. The site imports the roster rather than restating the eight names, so a label is written once.
@@ -184,7 +184,7 @@ The site is done when all of these hold. They are checkable, in the same spirit 
 
 ## 12. Out of scope
 
-No server beyond the chat function in section 14, no database, no search, no user accounts, no comments, and no analytics. No dark mode, matching the screen spec, except on the scoreboard (section 7). No responsive work below 375px, which is the narrow width the builds were already reviewed at. No live rerun of anything: the site displays a scoring run, it does not perform one. No editing of the write-up's prose to fit a layout.
+No server beyond the chat function in section 14, no database, no search, no user accounts, no comments, and no analytics beyond Vercel Web Analytics page views. The owner added those on 2026-09-16. The shell loads Vercel's script only when the build runs on Vercel (`VERCEL` is set), because the script path exists only there and a local `site:check` would count it as a 404. The eight build screens under `/screens/` do not get it. No dark mode, matching the screen spec, except on the scoreboard (section 7). No responsive work below 375px, which is the narrow width the builds were already reviewed at. No live rerun of anything: the site displays a scoring run, it does not perform one. No editing of the write-up's prose to fit a layout.
 
 ## 13. Open decisions
 
