@@ -22,7 +22,7 @@ export function ms(value: number): string {
   return `${value} ms`;
 }
 
-export const REPO_URL = 'https://github.com/BobDempsey/ui-library-comparison';
+export const REPO_URL = 'https://github.com/BobDempsey/ai-frontend-advisor';
 
 /** `rel` is the relative path from a page back to the site root, `''` on the root page. */
 export function detailHref(rel: string, build: string): string {

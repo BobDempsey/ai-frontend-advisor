@@ -3,7 +3,7 @@
  *
  *   pnpm lighthouse --build react-shadcn
  *   pnpm lighthouse --all
- *   pnpm lighthouse --all --url https://ui-library-comparison.bobdempsey83.com
+ *   pnpm lighthouse --all --url https://ai-frontend-advisor.bobdempsey83.com
  *
  * With `--url`, the runs target the deployed screen at
  * `<url>/screens/<name>/` instead of a local server, which is the measurement

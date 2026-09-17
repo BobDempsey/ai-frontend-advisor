@@ -375,7 +375,7 @@ function Scoreboard({ data }: { data: SiteData }) {
 export function scoreboard(data: SiteData): Page {
   return {
     path: 'index.html',
-    title: 'UI library comparison',
+    title: 'AI frontend advisor',
     description: 'Eight UI libraries, one screen: bundle size, accessibility defaults, ergonomics, and first render.',
     nav: 'scoreboard',
     body: renderToStaticMarkup(<Scoreboard data={data} />),
@@ -683,7 +683,7 @@ export function detail(data: SiteData, build: Build): Page {
   const path = `builds/${build.name}/index.html`;
   return {
     path,
-    title: `${build.roster.library}, UI library comparison`,
+    title: `${build.roster.library}, AI frontend advisor`,
     description: `${build.roster.library} (${build.name}): every field of its result file, its screenshots, and its live screen.`,
     nav: 'build',
     body: renderToStaticMarkup(<Detail data={data} build={build} rel={relFor(path)} />),
@@ -782,7 +782,7 @@ export function writeUp(data: SiteData): Page {
   );
   return {
     path,
-    title: 'Write-up, UI library comparison',
+    title: 'Write-up, AI frontend advisor',
     description: 'The write-up for the UI library comparison, converted from write-up/README.md.',
     nav: 'write-up',
     body,
@@ -801,7 +801,7 @@ export function spec(data: SiteData): Page {
   );
   return {
     path,
-    title: 'Screen spec, UI library comparison',
+    title: 'Screen spec, AI frontend advisor',
     description: 'The screen spec every build was held to, converted from spec/screen-spec.md.',
     nav: 'spec',
     body,

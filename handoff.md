@@ -1,6 +1,6 @@
 # Handoff: UI library comparison
 
-**Updated:** 2026-09-17 (drift fixes from a sync: sections 2, 6 and 14). Previously 2026-09-16, twice (Vercel Web Analytics, section 18), 2026-09-08, 2026-09-04, 2026-09-03.
+**Updated:** 2026-09-17, twice (the rename, section 19; drift fixes in sections 2, 6 and 14). Previously 2026-09-16, twice (Vercel Web Analytics, section 18), 2026-09-08, 2026-09-04, 2026-09-03.
 
 ## 1. What this is
 
@@ -320,3 +320,13 @@ The owner asked for page view analytics on this site, the portfolio site and bot
 `site/index.html` has a new `<!--site:analytics-->` slot, and `fill()` in `site/vite.config.ts` puts Vercel's two script tags in it only when `VERCEL` is set. The script path exists only on Vercel, so a local or CI build leaves it out and `site:check` sees no 404. The eight builds and `/screens/` are untouched, so no bundle or first render number moves. The `@vercel/analytics` package is not used, for parity with the other two repos, where npm cannot install it.
 
 The owner turned Web Analytics on for the Vercel project `ui-library-comparison` with `npx vercel@latest project web-analytics enable ui-library-comparison --scope bobdempseys-projects`. The CLI takes that confirmation only from an interactive terminal, so an agent cannot do it. Verified on 2026-09-16: `/` and `/write-up/` serve the script, a browser visit posted to `/_vercel/insights/view`, and the project counted one page view. The Hobby plan counts 50,000 events a month across every project in the team and keeps one month of data.
+
+## 19. Renamed to ai-frontend-advisor, 2026-09-17
+
+The user plans to turn the chat into an advisor that ranks a short list of libraries for a reader's project, and chose a new product name for it: `ai-frontend-advisor`, shown as "AI frontend advisor". They wanted AI in the name and "ui" out of it. "Frontend" is there because the data covers only front-end libraries on React and Vue. The advisor feature itself is not built or planned in detail yet; the user asked not to start it.
+
+What changed in the repo: the root package name, the navbar and page titles in `site/index.html` and `site/src/pages.tsx`, `REPO_URL` in `site/src/html.ts`, the README heading and its links, the `--url` example in `scripts/lighthouse.ts`, and the folder name in the layout block of `spec/screen-spec.md` section 14, an owner edit the user approved. `pnpm typecheck`, `pnpm test:api`, `pnpm site:build`, `pnpm site:screens` and `pnpm site:check` all passed after the edit, and `results/*.json` hashed identical.
+
+What kept the old name, on purpose. The study is still "the comparison" (section 8), so `ComparisonAdapter`, `comparison.json`, the two agents, the screen spec's title and the write-up's own description keep it. The `@uilc/*` scope stays. `builds/*/lighthouse.json` and `write-up/README.md` keep the old URL, because it records where the render numbers were taken; a rerun of `pnpm lighthouse --all --url <new>` is the only honest way to change them.
+
+The README links and `REPO_URL` point at the new names before those exist, so do not push this until the GitHub repo is renamed and the new subdomain serves. The outward steps, each for the user to confirm: `gh repo rename ai-frontend-advisor` and `git remote set-url origin`, renaming the Vercel project (then checking that `OPENAI_API_KEY`, Web Analytics and the "Chat rate limit" firewall rule carried over), adding `ai-frontend-advisor.bobdempsey83.com` with a Route 53 CNAME in the zone from section 16, a 308 from the old subdomain to the new one, and `gh repo edit --homepage`. The chat's Origin check compares the request's own host, so it needs no change for the new domain. The local folder is still `C:\code\ui-library-comparison`; moving it needs `CI=1 pnpm install --frozen-lockfile` (section 5) and leaves the Claude project memory behind.
