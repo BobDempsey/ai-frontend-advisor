@@ -80,8 +80,8 @@ describe('loadGrounding and buildSystemPrompt, on the real repo', () => {
     // Answer anything outside the eight with the limits sentence.
     expect(prompt).toContain(`Answer anything outside the eight with the limits sentence: "${LIMITS_SENTENCE}"`);
     expect(prompt).toContain('Never answer such a question as if it had been measured.');
-    expect(prompt).toContain('Never put a figure in a sentence that names a library, framework or topic outside the eight.');
-    expect(prompt).toContain("If you quote a measured library's figures in that answer at all, give them their own sentence that names only measured libraries.");
+    expect(prompt).toContain('When a question names a library, framework or topic outside the eight, answer with the limits sentence and quote no figures at all in that reply, not even for a measured library named in the same question.');
+    expect(prompt).toContain('The reader can ask about a measured library separately.');
   });
 
   it('allows a short list but still no winner and no ranking of all eight', () => {
