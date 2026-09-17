@@ -127,9 +127,9 @@ jobs:
       - run: pnpm --filter @uilc/${{ matrix.app }} build
 
   # The results site, spec/site-spec.md. It builds only from a run where every
-  # criteria suite passed. Where it deploys is still an owner decision (site
-  # spec section 13, open decision 2), so for now the job uploads site/dist as
-  # an artifact and deploys nowhere.
+  # criteria suite passed. Vercel builds and deploys main itself on every push
+  # (handoff.md section 16), so this job only builds the site, checks it, and
+  # uploads site/dist as an artifact.
   publish:
     needs: [builds, baselines]
     if: github.ref == 'refs/heads/main'
