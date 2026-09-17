@@ -1,6 +1,6 @@
 # Handoff: UI library comparison
 
-**Updated:** 2026-09-16. Previously 2026-09-08, 2026-09-04, 2026-09-03.
+**Updated:** 2026-09-16, twice (Vercel Web Analytics, section 18). Previously 2026-09-08, 2026-09-04, 2026-09-03.
 
 ## 1. What this is
 
@@ -71,6 +71,8 @@ A library that cannot meet a requirement records the failure. Do not bend the sp
 
 ## 5. Gotchas
 
+- The repo lives at `C:\code\ui-library-comparison` now. It was on the Desktop, next to `demo-resume`, until some time before 2026-09-16, so every `../demo-resume/` path in this file now points at a folder that is not there; the folder is still `~/Desktop/demo-resume`.
+- The move broke pnpm's links: `tsc` and `vite` were reported missing. `CI=1 pnpm install --frozen-lockfile` rebuilt `node_modules`. Without `CI=1`, pnpm asks before deleting the modules folders and gives up in a non-interactive shell.
 - Scaffolding a build needs `pnpm install` afterwards, or its workspace dependencies are not linked and everything reports as missing modules.
 - `measure` identifies the fixture chunk by basename, matching `tickets-*.js` or `data-*.js`. A bundler that names chunks differently needs that regex updated, or the fixture counts against the budget.
 - The criteria compare against `expected.ts` rather than against numbers typed by hand, so regenerating the fixture does not silently invalidate the suite. Keep it that way.
@@ -259,6 +261,8 @@ It failed, every one of the eight legs, `fatal: bad revision 'origin/main'`. `ac
 
 Three pushes to `main` in a row (`34248083339`, `34248371980`, `34248702872`), all doc-only changes, all failed. None was a code regression: every criteria suite, build, and measure step passed in all three; the failures were `actions/upload-artifact@v4`'s finalize call hitting a transient `403 Forbidden` from GitHub's storage backend twice, and Lighthouse's headless Chrome failing to launch once (`Unable to connect to Chrome`, the same message the section 13 shell-quoting bug produced, but that fix is still in place and this run hit it despite running the fixed code, so it reads as an unrelated one-off rather than a return of that bug). Recorded so the next red run on an unrelated commit isn't mistaken for a real failure without being checked.
 
+One more on 2026-09-16: the `publish` job's `pnpm site:check` on `0644cec` died with `connect ECONNREFUSED 127.0.0.1:<port>`, its headless Chrome gone before the check connected. Rerunning the failed job (run 35171255161) passed without a change.
+
 ## 15. Results site spec and screenshots, 2026-09-09
 
 Phase three opened with `spec/site-spec.md` (`1520ce2`). It treats the site as a publishing surface with the same freeze discipline as the screen spec: it reads the repo and renders it, adds no script to any build, stays out of `scripts/roster.ts` so `measure` never scores it, types no number by hand, and shows no composite score or winner. Its stack is vanilla TypeScript and Vite with hand written CSS, because a site built in one of the eight libraries would read as an endorsement. A build-time markdown converter is the only extra dependency allowed; a second one is an owner call.
@@ -287,7 +291,7 @@ Verified on 2026-09-16: `/`, `/write-up/`, `/spec/`, `/builds/react-antd/`, both
 
 ## 17. Chat assistant on the results site, 2026-09-16
 
-Built and checked locally, not committed and not deployed. The owner's decisions are in `spec/site-spec.md` section 14, which also records the edits to sections 2, 3, 5, 7, 10 and 12 that allow it.
+Committed and live; the verification is further down this section. The owner's decisions are in `spec/site-spec.md` section 14, which also records the edits to sections 2, 3, 5, 7, 10 and 12 that allow it.
 
 What exists. `api/chat.ts` is a Vercel Function using the Web `fetch` export. Its helpers sit in `api/_lib/`, where the underscore keeps Vercel from routing them: `grounding.ts` builds the system prompt, `limits.ts` caps messages and history, `guard.ts` has the Origin check and the rate limit, `model.ts` is the only file that imports `openai`, and `handler.ts` takes its model, prompt and limiter as arguments so tests can pass fakes. `vercel.json` gained a `functions` entry for `api/chat.ts` with `maxDuration: 60` and `includeFiles` for the write-up, the screen spec and `results/*.json`, which `grounding.ts` reads from `process.cwd()`. The roster comes in as an import. The client is `site/src/chat/`, mounted from a module script in `site/index.html` onto `#chat-root`, and it posts to `/api/chat/` with the trailing slash, since `trailingSlash: true` would otherwise answer with a 308.
 
@@ -306,3 +310,11 @@ Verified live on 2026-09-16 after the user added `OPENAI_API_KEY` in Vercel (Sen
 Durable rate limit, 2026-09-16: a Vercel Firewall custom rule, "Chat rate limit", published to production with `npx vercel@latest firewall rules add ... --project ui-library-comparison --scope bobdempseys-projects` then `vercel firewall publish`. It matches POST requests whose path starts with `/api/chat` and allows 10 per IP per 600 seconds (fixed window), answering 429 after that, before the function or OpenAI runs. Verified: twelve empty POSTs returned ten 400s then two 429s. The rule lives in the Vercel project, not in this repo, so check the dashboard's Firewall tab before changing it. The function's own in-memory limit (12 per 10 minutes) stays as a second layer. The drawer shows the remaining count once a reader has asked 5 questions ("5 questions remaining."), and at zero says to try again in a few minutes and disables Send; it never states the window, at the user's request. The firewall does not report what is left, so `site/src/chat/quota.ts` counts questions per browser in `localStorage` (`uilc-chat-quota`) over the same 10 minute window and treats any 429 as spent. It is a hint and can drift from the firewall's count, for example across browsers on one IP. If the rule's limit changes, change `QUESTION_LIMIT` to match. Testing the chat by hand more than ten times in ten minutes from one IP will hit the rule.
 
 The chat button moved into the navbar on 2026-09-16 at the user's request: an icon-only ghost button with a robot icon after the theme toggle, with a pulsing green dot at its top right that stops pulsing under `prefers-reduced-motion`. `#chat-root` now sits inside the navbar and reserves the button's size so nothing shifts when the island mounts.
+
+## 18. Vercel Web Analytics, 2026-09-16
+
+The owner asked for page view analytics on this site, the portfolio site and both AI Storefront shops. Site spec section 12 said "no analytics", so `0644cec` edits it to allow Vercel Web Analytics page views and nothing else, and updates sections 3 and 5 to match: the site now has three scripts, and `/_vercel/insights/` is a second same-origin exception to the no-runtime-fetch rule.
+
+`site/index.html` has a new `<!--site:analytics-->` slot, and `fill()` in `site/vite.config.ts` puts Vercel's two script tags in it only when `VERCEL` is set. The script path exists only on Vercel, so a local or CI build leaves it out and `site:check` sees no 404. The eight builds and `/screens/` are untouched, so no bundle or first render number moves. The `@vercel/analytics` package is not used, for parity with the other two repos, where npm cannot install it.
+
+The owner turned Web Analytics on for the Vercel project `ui-library-comparison` with `npx vercel@latest project web-analytics enable ui-library-comparison --scope bobdempseys-projects`. The CLI takes that confirmation only from an interactive terminal, so an agent cannot do it. Verified on 2026-09-16: `/` and `/write-up/` serve the script, a browser visit posted to `/_vercel/insights/view`, and the project counted one page view. The Hobby plan counts 50,000 events a month across every project in the team and keeps one month of data.
