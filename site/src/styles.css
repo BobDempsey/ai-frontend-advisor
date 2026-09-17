@@ -1,8 +1,8 @@
 /*
  * The site's one stylesheet, compiled by Tailwind at build time. The tokens
  * are shadcn/ui's neutral theme with three site changes, each marked below.
- * Light everywhere except the scoreboard, which follows the reader's system
- * scheme and its toggle (site spec section 7).
+ * Light everywhere except the landing page and the scoreboard, which follow
+ * the reader's system scheme and their toggle (site spec section 7).
  */
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -11,11 +11,11 @@
 @plugin "@tailwindcss/typography";
 
 /*
- * shadcn's class-based dark variant: `dark` on <html>, set by the scoreboard's
- * script in src/theme.ts. The media block is the fallback for a scoreboard
- * whose script never ran: `theme-auto` is on the scoreboard's <html> only,
- * and the script sets `light` when the reader or the system wants light, which
- * turns the fallback off. No other page carries either class.
+ * shadcn's class-based dark variant: `dark` on <html>, set by the script in
+ * src/theme.ts. The media block is the fallback for a page whose script never
+ * ran: `theme-auto` is on the <html> of the landing page and the scoreboard
+ * only, and the script sets `light` when the reader or the system wants
+ * light, which turns the fallback off. No other page carries either class.
  */
 @custom-variant dark {
   &:where(.dark, .dark *) {

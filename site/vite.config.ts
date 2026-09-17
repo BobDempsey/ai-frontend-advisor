@@ -6,8 +6,10 @@
  * the shell every page shares; the plugin below fills it per page with markup
  * that `src/pages.tsx` renders from React components, and hands Vite one HTML
  * entry per view, so the output is plain files with relative links. The pages
- * are rendered here and never hydrate. Two scripts ship: the scoreboard's
- * inline theme toggle, see `src/theme.ts`, and the chat island every page
+ * are rendered here and never hydrate. The scripts that ship: the inline
+ * theme toggle on the landing page and the scoreboard, see `src/theme.ts`,
+ * the landing page's inline question box, see `src/landing/ask.ts`, and the
+ * chat island every page
  * loads from `src/chat/main.ts`, which mounts its own React root on the
  * shell's `#chat-root` and posts to `/api/chat/`. Tailwind compiles `src/styles.css` into the one
  * stylesheet. `base: './'` keeps every asset URL relative, so the folder
@@ -48,10 +50,11 @@ function fill(shell: string, page: Page): string {
     nav: nav(page),
     home: relFor(page.path) || './',
     content: page.body,
-    // Only the scoreboard may turn dark, site spec section 7.
+    // Only the landing page and the scoreboard may turn dark, site spec section 7.
     htmlClass: page.theme === 'auto' ? 'theme-auto' : 'theme-light',
     headScript: page.theme === 'auto' ? THEME_SCRIPT : '',
     navExtra: page.theme === 'auto' ? themeToggleHtml() : '',
+    pageScript: page.script ?? '',
     // Vercel Web Analytics, site spec section 12. Vercel serves the script, so it is
     // left out of local builds, where it would 404.
     analytics: process.env.VERCEL ? ANALYTICS_SCRIPT : '',
