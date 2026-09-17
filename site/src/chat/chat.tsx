@@ -1,6 +1,7 @@
 /**
- * The chat island: the navbar button, and a drawer holding the conversation.
- * spec/site-spec.md section 14. It is the only React that reaches the
+ * The chat island: the navbar button, and a drawer holding the conversation
+ * with the AI frontend advisor. spec/site-spec.md section 14 and
+ * spec/advisor-spec.md section 7. It is the only React that reaches the
  * browser, loaded on first use by `main.ts` and mounted by `island.tsx`.
  *
  * The drawer is portaled into <body>, so it takes the page's colors: dark only
@@ -13,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { QUESTION_LIMIT, WARN_AFTER, markSpent, questionsLeft, recordQuestion } from './quota';
-import { ChatToggle } from './toggle';
+import { ADVISOR_TITLE, ChatToggle } from './toggle';
 import { asHistory, clearConversation, readConversation, writeConversation, type Entry } from './store';
 
 /** The function's own limit; the server cuts anything longer anyway. */
@@ -21,7 +22,8 @@ const MAX_CHARS = 1000;
 /** Absolute, so every page depth posts to the same place. Trailing slash, because the host redirects without one. */
 export const CHAT_ENDPOINT = '/api/chat/';
 
-const SUGGESTIONS = ['What should I use for my blog?', 'Which Vue library has the smallest bundle?', 'Why is Ant Design over budget?'];
+/** Starting points for the advisor, advisor spec section 7. The landing page offers the same three. */
+export const SUGGESTIONS = ['Help me pick a library for my project', 'Compare Vuetify and Quasar', 'Why is Ant Design over budget?'];
 
 const linkClass = 'font-medium underline underline-offset-2';
 
@@ -199,9 +201,10 @@ export function ChatIsland({ initialOpen = false, initialQuestion = '' }: { init
         }}
       >
         <SheetHeader className="border-b pr-12">
-          <SheetTitle>Ask about this comparison</SheetTitle>
+          <SheetTitle>{ADVISOR_TITLE}</SheetTitle>
           <SheetDescription>
-            Answers come only from the write-up, the screen spec and the eight result files. The assistant names no overall winner.
+            Helps you pick among the eight libraries this site measured. Answers come only from the write-up, the screen spec, the
+            result files and the build notes, and it names no overall winner.
           </SheetDescription>
         </SheetHeader>
 
@@ -238,7 +241,7 @@ export function ChatIsland({ initialOpen = false, initialQuestion = '' }: { init
                     : 'chat-answer mr-8 rounded-lg border px-3 py-2'
               }
             >
-              <span className="sr-only">{entry.role === 'user' ? 'You said: ' : 'Assistant: '}</span>
+              <span className="sr-only">{entry.role === 'user' ? 'You said: ' : 'Advisor: '}</span>
               {entry.role === 'user' || entry.failed ? (
                 entry.content
               ) : (

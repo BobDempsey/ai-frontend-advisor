@@ -8,7 +8,9 @@ import * as React from 'react';
 import { Bot } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
-export const CHAT_LABEL = 'Ask about this comparison';
+/** The button's name. It opens the drawer titled with `ADVISOR_TITLE`. */
+export const ADVISOR_TITLE = 'AI frontend advisor';
+export const CHAT_LABEL = `Open the ${ADVISOR_TITLE}`;
 
 export const ChatToggle = React.forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<'button'>>(
   ({ className, ...props }, ref) => (
