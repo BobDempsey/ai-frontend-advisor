@@ -1,6 +1,6 @@
 # Advisor spec: the AI frontend advisor
 
-**Phase four.** `screen-spec.md` and `site-spec.md` are the fixed input. This document turns the site's chat assistant (site spec section 14) into an advisor that helps a reader choose a front-end library for their own project. It changes what the assistant does and says, not what the comparison measured.
+**Phase four.** `screen-spec.md` and `site-spec.md` are the fixed input. This document turns the site's chat assistant (site spec section 14) into an advisor that helps a reader choose a front-end library for their own project. Section 11 adds a chat-first landing page at `/` that leads readers to it. It changes what the assistant does and says, not what the comparison measured.
 
 ## 1. Why this exists
 
@@ -65,7 +65,7 @@ The prompt's rules gain these: ask before recommending when the needs are unknow
 - Saving a reader's project profile past the browser session.
 - Tool calls, web search, or any source outside the grounding files.
 - New measurements, or rescoring any build.
-- A separate advisor page. The advisor lives in the drawer.
+- A second chat on a page. The advisor lives in the drawer, and the landing page in section 11 hands its questions to the drawer.
 
 ## 9. Acceptance criteria
 
@@ -84,3 +84,23 @@ The prompt's rules gain these: ask before recommending when the needs are unknow
 
 1. Whether the eval in criterion 7 should also run on a schedule against the deployed function, and who pays for those calls.
 2. Whether `requirementsNeedingCustomCode` is shown to readers under that name or as "accessibility work you add".
+
+## 11. The landing page
+
+Added 2026-09-17. `/` becomes a chat-first page, the way AI products open: one headline, one question box, and little else above the fold. The scoreboard moves to `/results/` (site spec section 7).
+
+**Hero.** A headline naming what the advisor does ("Find the front-end library that fits your project"), one line under it saying the answers come from eight libraries built and measured on the same screen, and a large question box with a send button. Sending dispatches `uilc:ask` and the drawer opens with the answer.
+
+**Starting prompts.** Three to four buttons under the box, matching the drawer's suggestions in section 7 ("Help me pick a library for my project", "Compare Vuetify and Quasar", "Why is Ant Design over budget?"). Each dispatches `uilc:ask`.
+
+**The ask event.** Any page may dispatch `new CustomEvent('uilc:ask', { detail: { question } })` on `window`. `site/src/chat/main.ts` listens, loads the chat island if it has not, and mounts it open, and the island sends the question as the first message. An empty question only opens the drawer. The landing page never talks to `/api/chat/` itself.
+
+**Below the fold.** A short "How it works" row in three steps (tell it about your project, get a short list, check the evidence), then a strip of the eight library names linking to their build pages, then links to the results, the write-up and the screen spec. The page shows no bundle numbers and no charts; those live on `/results/`.
+
+**Navbar.** "Advisor" (the landing page), "Results", "Write-up", "Screen spec", then the theme toggle and the chat button.
+
+**Without script.** The question box is a form whose submit does nothing harmful, and a line under it links to `/results/` so the page still leads somewhere.
+
+**Look.** It uses the shadcn components already in `site/src/components/ui/` and the site's tokens, and its hero avoids the generic centered gradient with three cards. The page is static HTML like every other view; only the chat entry script runs. Like `/results/`, it follows the system color scheme and shows the theme toggle.
+
+**How it is checked.** `pnpm site:check` covers the hero, the starting prompts, the event dispatch, axe at 1440 and 375 in both color schemes, and no sideways scroll.

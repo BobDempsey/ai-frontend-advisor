@@ -21,7 +21,7 @@ These come first because a results site is the most tempting place in the repo t
 - The site publishes no number it did not read from a file in the repo. Nothing is typed by hand into a component. If a figure is wrong, the fix is a rescore, not an edit here.
 - The site computes no composite score and names no winner. Section 10 of the screen spec settled that, and a UI is where it would come back, as a total column, a rank, or five stars.
 - The two reporting groups hold. React and Vue are shown as separate groups, and the gzipped delta is the only number allowed to span them.
-- The chat assistant in section 14 is held to this section too. It names no winner, ranks nothing, invents no number, and quotes only the gzipped delta when it compares a React build with a Vue build.
+- The chat assistant in section 14 is held to this section too. It names no winner, invents no number, and quotes only the gzipped delta when it compares a React build with a Vue build. It ranks nothing, with one exception the owner approved on 2026-09-17: the advisor may order a short list of two or three libraries against the needs a reader has stated, and name the need that decided the order (`advisor-spec.md` section 3). That list is never all eight and never a score.
 
 ## 3. Stack
 
@@ -34,7 +34,7 @@ How it is used:
 - shadcn/ui components are copied into `site/src/components/ui/` by the shadcn CLI, the way `builds/react-shadcn` has them, and the site owns those files. The site never imports from `builds/`.
 - Pages are React components rendered with `renderToStaticMarkup` at build time, one HTML file per view, as before. Nothing hydrates. The one exception is the chat island in section 14, which ships React to the browser and mounts its own root beside the static page.
 - Only components that work as static markup are used on the pages: Card, Table, Badge, Button, Separator, and similar. Anything that needs client side state to function (Tabs, Dialog, Tooltip, DropdownMenu) is out, because there is no hydration to drive it. The chat island is the exception, and it uses Sheet and Textarea.
-- The site has three scripts: the scoreboard's light and dark toggle, which switches shadcn's `dark` class on the root element, the chat island of section 14, and Vercel Web Analytics on every page (section 12).
+- The site has three scripts: the light and dark toggle on the landing page and the scoreboard, which switches shadcn's `dark` class on the root element, the chat island of section 14, and Vercel Web Analytics on every page (section 12).
 - Tailwind CSS compiles at build time. Its output is the site's stylesheet.
 - Charts stay inline SVG written here, colored with shadcn's chart tokens. The shadcn chart component depends on Recharts rendering in the browser, which a static page does not do, and a horizontal bar per build still does not need a library.
 - The build-time markdown converter stays. Its output is styled with Tailwind's typography plugin or equivalent hand written rules.
@@ -108,15 +108,17 @@ Recapture is manual and deliberate, run as `pnpm screenshots`. A screenshot goin
 
 ## 7. The views
 
-Four, and no more without an owner deciding.
+Five, and no more without an owner deciding. The owner added the landing page on 2026-09-17 and moved the scoreboard from `/` to `/results/`.
 
-**Scoreboard, `/`.** The landing view. The eight builds in the two reporting groups, five React and three Vue, each showing library, kind, delta, total against the 180 KB budget, criteria passed out of 18, axe violations, requirements needing custom code, and median first render. `react-antd` is marked over budget in the group it belongs to, not pulled out into a failure list. Sorting the table is fine. A default sort that ranks all eight by anything except delta is not, because that is the composite score arriving through the back door.
+**Landing page, `/`.** A chat-first page that leads with the advisor, specified in `advisor-spec.md` section 11. It shows no bundle numbers and no charts, and links to `/results/`.
+
+**Scoreboard, `/results/`.** The eight builds in the two reporting groups, five React and three Vue, each showing library, kind, delta, total against the 180 KB budget, criteria passed out of 18, axe violations, requirements needing custom code, and median first render. `react-antd` is marked over budget in the group it belongs to, not pulled out into a failure list. Sorting the table is fine. A default sort that ranks all eight by anything except delta is not, because that is the composite score arriving through the back door.
 
 Each row carries its 1440px screenshot as a thumbnail in the first column, about 160px wide, `loading="lazy"`, with the build name as its `alt` text. That is a thumbnail and nothing more: it does not push the numbers below the fold, it does not become a card grid, and the eight rows still read as one table a reader can scan top to bottom. Clicking it opens the live screen. Hovering or focusing it is allowed to show a larger preview, and that preview must not be the only way to reach the full image.
 
 Above the table, a short TL;DR summarizes the run: how many builds pass the criteria, the range of deltas with the library at each end, which builds are over budget, and the range of first render medians with its caveat. Every figure in it is computed from `results/` at build time. It names no single winner, but it lists the write-up's picks by use case, condensed from its "Picking one" section, and the build fails if that section stops naming a library the summary names.
 
-The scoreboard, and only the scoreboard, follows the reader's system color scheme, light or dark, and carries a button that switches between the two and remembers the reader's choice in that browser. That button's script is inlined, it fetches nothing, and without it the page still follows the system scheme with the button hidden. Every other view, and every build screen, stays light. The dark colors meet the same contrast bar as the light ones, and framework is still the only thing color carries. Added 2026-09-16 at the owner's request.
+The landing page and the scoreboard, and only those two, follow the reader's system color scheme, light or dark, and carry a button that switches between the two and remembers the reader's choice in that browser. That button's script is inlined, it fetches nothing, and without it the page still follows the system scheme with the button hidden. Every other view, and every build screen, stays light. The dark colors meet the same contrast bar as the light ones, and framework is still the only thing color carries. Added 2026-09-16 at the owner's request, and extended to the landing page on 2026-09-17.
 
 **Build detail, `/builds/<build>/`.** One build, every field of its result file, its `handBuilt` three, its failed criterion numbers when there are any, both screenshots at full size side by side with their widths labeled, a link to its live screen, and a link to its folder on GitHub. This is the view that lets a reader check a claim, so it is the one place the pictures get room.
 
@@ -175,7 +177,7 @@ The site is done when all of these hold. They are checkable, in the same spirit 
 8. Every first render figure carries the local measurement caveat
 9. All eight screens load at `/screens/<build>/` and their assets resolve
 10. Sixteen screenshots exist, each under 150 KB, and a missing one fails the site build
-11. The scoreboard's eight rows plus their thumbnails still read as one scannable table, and the thumbnails do not push the first row's numbers below the fold at 1440x900
+11. The scoreboard's eight rows plus their thumbnails still read as one scannable table, and the thumbnails do not push the first row's numbers below the fold at 1440x900 on `/results/`
 12. `git status` is clean after a full publish, screens build included
 13. `results/*.json` is byte identical before and after a full publish
 14. axe-core reports zero serious or critical violations on the scoreboard, a build detail view, and the write-up
@@ -184,7 +186,7 @@ The site is done when all of these hold. They are checkable, in the same spirit 
 
 ## 12. Out of scope
 
-No server beyond the chat function in section 14, no database, no search, no user accounts, no comments, and no analytics beyond Vercel Web Analytics page views. The owner added those on 2026-09-16. The shell loads Vercel's script only when the build runs on Vercel (`VERCEL` is set), because the script path exists only there and a local `site:check` would count it as a 404. The eight build screens under `/screens/` do not get it. No dark mode, matching the screen spec, except on the scoreboard (section 7). No responsive work below 375px, which is the narrow width the builds were already reviewed at. No live rerun of anything: the site displays a scoring run, it does not perform one. No editing of the write-up's prose to fit a layout.
+No server beyond the chat function in section 14, no database, no search, no user accounts, no comments, and no analytics beyond Vercel Web Analytics page views. The owner added those on 2026-09-16. The shell loads Vercel's script only when the build runs on Vercel (`VERCEL` is set), because the script path exists only there and a local `site:check` would count it as a 404. The eight build screens under `/screens/` do not get it. No dark mode, matching the screen spec, except on the landing page and the scoreboard (section 7). No responsive work below 375px, which is the narrow width the builds were already reviewed at. No live rerun of anything: the site displays a scoring run, it does not perform one. No editing of the write-up's prose to fit a layout.
 
 ## 13. Open decisions
 
@@ -207,7 +209,7 @@ Added 2026-09-16 at the owner's request. Readers can ask a question such as "wha
 
 **Limits, all enforced on the server.** POST only. The request's Origin must match its host. Each message is cut to 1000 characters and the history to its last 6 turns, and the output has a token ceiling. A per address rate limit keyed on `x-forwarded-for` runs in each function instance's memory; it is best effort and not durable. Every failure, a missing key included, comes back as a plain sentence the drawer shows.
 
-**The island.** A robot icon button in every page's navbar, with a pulsing green status dot, opens a shadcn Sheet. The page stays static HTML and the button is part of it, hidden until script runs. A small Vite entry, `site/src/chat/main.ts`, reveals the button and loads the island, React included, only when a reader hovers, focuses or clicks it; `site/src/chat/island.tsx` then mounts it with `createRoot` in place of the static button, already open. Answers render as markdown with raw HTML dropped. The conversation lives in `sessionStorage` under one key, and Start again clears it. The drawer takes the page's colors, so it is dark only where the scoreboard is.
+**The island.** A robot icon button in every page's navbar, with a pulsing green status dot, opens a shadcn Sheet. The page stays static HTML and the button is part of it, hidden until script runs. A small Vite entry, `site/src/chat/main.ts`, reveals the button and loads the island, React included, only when a reader hovers, focuses or clicks it; `site/src/chat/island.tsx` then mounts it with `createRoot` in place of the static button, already open. Answers render as markdown with raw HTML dropped. The conversation lives in `sessionStorage` under one key, and Start again clears it. The drawer takes the page's colors, so it is dark only where the landing page or the scoreboard is.
 
 **Its accessibility bar** is section 9's, plus these: the message list is `aria-live="polite"`, the question field has a real `<label>`, Enter sends and Shift+Enter adds a line, Escape closes the drawer, focus returns to the button on close, and axe reports zero serious or critical violations with the drawer open.
 
