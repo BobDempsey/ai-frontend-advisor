@@ -1,3 +1,3 @@
 # Remaining tasks - ui-library-comparison
 
-Nothing outstanding.
+- [ ] Update the stale deploy comment on the CI publish job
