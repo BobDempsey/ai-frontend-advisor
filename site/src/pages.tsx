@@ -1,8 +1,9 @@
 /**
- * The four views of site spec section 7, as React components rendered to
- * static HTML at build time with `renderToStaticMarkup`. Each page is its own
- * file; there is no client side routing and none of these pages hydrate. The
- * only scripts are the scoreboard's theme toggle and the chat island in
+ * The views of site spec section 7, as React components rendered to static
+ * HTML at build time with `renderToStaticMarkup`. Each page is its own file;
+ * there is no client side routing and none of these pages hydrate. The only
+ * scripts are the theme toggle on the landing page and the scoreboard, the
+ * landing page's question box in `src/landing/ask.ts`, and the chat island in
  * `src/chat/`, which mounts its own root beside the page.
  */
 import type { ReactNode } from 'react';
@@ -29,6 +30,8 @@ import {
   screenHref,
   shotSrc,
 } from './html';
+import { ASK_SCRIPT } from './landing/ask';
+import { Landing, countWord } from './landing/landing';
 import { convert } from './markdown';
 
 export interface Page {
@@ -37,15 +40,17 @@ export interface Page {
   title: string;
   description: string;
   /** Which nav item is current. */
-  nav: 'scoreboard' | 'write-up' | 'spec' | 'build';
+  nav: 'advisor' | 'results' | 'write-up' | 'spec' | 'build';
   /** HTML for the main landmark. */
   body: string;
   /**
    * `auto` follows the reader's system color scheme and carries the toggle.
-   * Site spec section 7 allows that on the scoreboard only; every other view
-   * stays light.
+   * Site spec section 7 allows that on the landing page and the scoreboard
+   * only; every other view stays light.
    */
   theme?: 'auto';
+  /** An inline script for the end of this page's body, if it needs one. */
+  script?: string;
 }
 
 /** Relative prefix from a page's folder back to the site root. */
@@ -56,7 +61,8 @@ export function relFor(path: string): string {
 export function nav(page: Page): string {
   const rel = relFor(page.path);
   const items = [
-    { key: 'scoreboard', href: rel || './', text: 'Scoreboard' },
+    { key: 'advisor', href: rel || './', text: 'Advisor' },
+    { key: 'results', href: `${rel}results/`, text: 'Results' },
     { key: 'write-up', href: `${rel}write-up/`, text: 'Write-up' },
     { key: 'spec', href: `${rel}spec/`, text: 'Screen spec' },
   ];
@@ -97,14 +103,14 @@ function Code({ children }: { children: ReactNode }) {
 
 /* Scoreboard */
 
-function ScoreboardRow({ build, budgetKb }: { build: Build; budgetKb: number }) {
+function ScoreboardRow({ build, budgetKb, rel }: { build: Build; budgetKb: number; rel: string }) {
   const { bundle, accessibility, render, criteria } = build.result;
   const total = criteria.passed + criteria.failed;
   const num = 'num text-right tabular-nums';
   return (
     <TableRow>
       <TableCell className="thumb w-[176px] py-2">
-        <a href={screenHref('', build.name)} className="block w-[160px] overflow-hidden rounded-md border leading-none">
+        <a href={screenHref(rel, build.name)} className="block w-[160px] overflow-hidden rounded-md border leading-none">
           <img
             src={shotSrc(build.name, 1440)}
             width={160}
@@ -117,7 +123,7 @@ function ScoreboardRow({ build, budgetKb }: { build: Build; budgetKb: number }) 
         </a>
       </TableCell>
       <TableHead scope="row" className="lib h-auto min-w-40 py-2 font-normal">
-        <a href={detailHref('', build.name)} className={`${linkClass} text-base`}>
+        <a href={detailHref(rel, build.name)} className={`${linkClass} text-base`}>
           {build.roster.library}
         </a>
         <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
@@ -162,7 +168,7 @@ const PICKS: { lead: string; use: string; builds: string[]; verb: string }[] = [
   { lead: 'Ant Design is hard to justify on a bundle sensitive screen', use: 'Bundle sensitive screen', verb: 'hard to justify:', builds: ['react-antd'] },
 ];
 
-function Picks({ data }: { data: SiteData }) {
+function Picks({ data, rel }: { data: SiteData; rel: string }) {
   const section = /^## Picking one\n([\s\S]*?)^## /m.exec(data.writeUp)?.[1];
   if (!section) throw new Error('write-up/README.md has no "Picking one" section for the scoreboard TL;DR');
   const paragraphs = section.split(/\n\s*\n/);
@@ -187,7 +193,7 @@ function Picks({ data }: { data: SiteData }) {
               {builds.map((b, i) => (
                 <span key={b.name}>
                   {i > 0 ? ', then ' : ''}
-                  <a className={linkClass} href={detailHref('', b.name)}>
+                  <a className={linkClass} href={detailHref(rel, b.name)}>
                     {b.roster.library}
                   </a>
                 </span>
@@ -204,7 +210,7 @@ function Picks({ data }: { data: SiteData }) {
  * The scoreboard's short summary. Every figure is read from the result files,
  * and nothing here names a winner or ranks all eight on anything but delta.
  */
-function Summary({ data }: { data: SiteData }) {
+function Summary({ data, rel }: { data: SiteData; rel: string }) {
   const count = data.builds.length;
   const passing = data.builds.filter((b) => b.result.criteria.failed === 0);
   const criteriaTotal = Math.max(...data.builds.map((b) => b.result.criteria.passed + b.result.criteria.failed));
@@ -248,13 +254,13 @@ function Summary({ data }: { data: SiteData }) {
             No single winner. The pick depends on the use case{' '}
             <span className="font-normal text-muted-foreground">
               (from the{' '}
-              <a className={linkClass} href="write-up/#picking-one">
+              <a className={linkClass} href={`${rel}write-up/#picking-one`}>
                 write-up
               </a>
               )
             </span>
           </h3>
-          <Picks data={data} />
+          <Picks data={data} rel={rel} />
         </div>
       </CardContent>
     </Card>
@@ -281,28 +287,32 @@ function ThemeToggle() {
   );
 }
 
-/** The navbar's theme toggle, for the scoreboard's shell only. */
+/** The navbar's theme toggle, for the shell of a page with `theme: 'auto'`. */
 export function themeToggleHtml(): string {
   return renderToStaticMarkup(<ThemeToggle />);
 }
 
-function Scoreboard({ data }: { data: SiteData }) {
+function Scoreboard({ data, rel }: { data: SiteData; rel: string }) {
   const caveat = renderCaveat(data.builds);
   const head = 'num h-auto py-2 text-right align-bottom text-xs whitespace-normal text-muted-foreground';
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">Scoreboard</h1>
+        <h1 className="font-heading text-3xl font-semibold tracking-tight">Results</h1>
         <Lede>
           {data.builds.length} UI libraries built the same <Code>/tickets</Code> screen against one spec. Every figure here
           is read from <Code>results/</Code> in the repo. There is no overall score and no winner; the{' '}
-          <a className={linkClass} href="write-up/">
+          <a className={linkClass} href={`${rel}write-up/`}>
             write-up
           </a>{' '}
-          picks per situation.
+          picks per situation, and the{' '}
+          <a className={linkClass} href={rel || './'}>
+            advisor
+          </a>{' '}
+          answers questions about your own project.
         </Lede>
       </div>
-      <Summary data={data} />
+      <Summary data={data} rel={rel} />
       <Card className="py-0">
         <Table
           className="scoreboard min-w-[1000px]"
@@ -353,7 +363,7 @@ function Scoreboard({ data }: { data: SiteData }) {
                 </th>
               </TableRow>
               {group.builds.map((b) => (
-                <ScoreboardRow key={b.name} build={b} budgetKb={data.budgetKb} />
+                <ScoreboardRow key={b.name} build={b} budgetKb={data.budgetKb} rel={rel} />
               ))}
             </TableBody>
           ))}
@@ -367,19 +377,36 @@ function Scoreboard({ data }: { data: SiteData }) {
           the trade they make.
         </Note>
       </div>
-      <CategoryCharts data={data} rel="" renderNote={caveat} />
+      <CategoryCharts data={data} rel={rel} renderNote={caveat} />
     </div>
   );
 }
 
+/** The scoreboard, at `/results/` since the landing page took `/`. */
 export function scoreboard(data: SiteData): Page {
+  const path = 'results/index.html';
+  return {
+    path,
+    title: 'Results, AI frontend advisor',
+    description: 'Eight UI libraries, one screen: bundle size, accessibility defaults, ergonomics, and first render.',
+    nav: 'results',
+    body: renderToStaticMarkup(<Scoreboard data={data} rel={relFor(path)} />),
+    theme: 'auto',
+  };
+}
+
+/* Landing page */
+
+export function landing(data: SiteData): Page {
   return {
     path: 'index.html',
     title: 'AI frontend advisor',
-    description: 'Eight UI libraries, one screen: bundle size, accessibility defaults, ergonomics, and first render.',
-    nav: 'scoreboard',
-    body: renderToStaticMarkup(<Scoreboard data={data} />),
+    description:
+      `Find the front-end library that fits your project. The advisor answers from ${countWord(data.builds.length)} UI libraries built and measured on the same screen.`,
+    nav: 'advisor',
+    body: renderToStaticMarkup(<Landing data={data} />),
     theme: 'auto',
+    script: ASK_SCRIPT,
   };
 }
 
@@ -618,8 +645,8 @@ function Detail({ data, build, rel }: { data: SiteData; build: Build; rel: strin
     <div className="space-y-8">
       <div className="space-y-3">
         <p className="text-sm">
-          <a className={linkClass} href={rel || './'}>
-            Scoreboard
+          <a className={linkClass} href={`${rel}results/`}>
+            Results
           </a>
         </p>
         <h1 className="font-heading text-3xl font-semibold tracking-tight">{build.roster.library}</h1>
@@ -809,5 +836,5 @@ export function spec(data: SiteData): Page {
 }
 
 export function allPages(data: SiteData): Page[] {
-  return [scoreboard(data), ...data.builds.map((b) => detail(data, b)), writeUp(data), spec(data)];
+  return [landing(data), scoreboard(data), ...data.builds.map((b) => detail(data, b)), writeUp(data), spec(data)];
 }

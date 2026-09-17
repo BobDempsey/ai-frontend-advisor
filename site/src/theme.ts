@@ -1,15 +1,16 @@
 /**
- * The scoreboard's light and dark toggle, inlined as a classic script in the
- * scoreboard's `<head>` so the right class is on `<html>` before first paint.
- * Site spec section 7. Apart from the chat island, it is the only script on
- * the site, so it stays small and does nothing a static page needs.
+ * The light and dark toggle for the landing page and the scoreboard, inlined
+ * as a classic script in their `<head>` so the right class is on `<html>`
+ * before first paint. Site spec section 7. It stays small and does nothing a
+ * static page needs.
  *
  * It follows shadcn's approach: `dark` on the root element turns the dark
  * tokens and every `dark:` variant on. With nothing stored it applies the
  * system scheme and keeps following it. It also sets `light` when the page is
  * light, which switches off the CSS fallback in `styles.css` that follows the
- * system scheme when this script never runs. Only the scoreboard carries
- * this script and the `theme-auto` class, so no other page can turn dark.
+ * system scheme when this script never runs. Only the landing page and the
+ * scoreboard carry this script and the `theme-auto` class, so no other page
+ * can turn dark.
  *
  * The choice lives in localStorage, per reader. Storage can be missing or
  * throw (private windows, blocked site data), so every access is guarded and

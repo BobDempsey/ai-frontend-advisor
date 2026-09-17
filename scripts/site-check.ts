@@ -10,15 +10,23 @@
  *
  * - axe-core reports a serious or critical violation on any site route, in
  *   either system color scheme
- * - a view other than the scoreboard turns dark, or the scoreboard does not
- *   (site spec section 12)
- * - the scoreboard's theme toggle does not switch, report, or remember the
- *   reader's choice, or the `dark` class on <html> disagrees with the paint
- * - without script, the scoreboard stops following the system scheme or
- *   shows the toggle
+ * - a view other than the landing page and the scoreboard turns dark, or
+ *   either of those two does not (site spec sections 7 and 12)
+ * - the theme toggle on the landing page or the scoreboard does not switch,
+ *   report, or remember the reader's choice, or the `dark` class on <html>
+ *   disagrees with the paint
+ * - without script, the landing page or the scoreboard stops following the
+ *   system scheme or shows the toggle
  * - a route scrolls sideways at 375px wide
- * - the first scoreboard row's numbers sit below the fold at 1440x900
- * - a focused control on the scoreboard has no visible outline
+ * - the first scoreboard row's numbers, on `/results/`, sit below the fold at
+ *   1440x900
+ * - a focused control on the landing page, the scoreboard, a detail view or
+ *   the write-up has no visible outline
+ * - the landing page (advisor spec section 11) loses its hero, its question
+ *   box or its starting prompts, shows a bundle number or a chart, fails axe
+ *   or scrolls sideways at 1440 or 375 in either scheme, does not hand a
+ *   question to the drawer as a `uilc:ask` event, or without script loses
+ *   its link to `/results/` or lets a submit go anywhere but back to itself
  * - the chat island, on the scoreboard and two other views, does not open
  *   and close from the keyboard, return focus to its button, pass axe while
  *   open, follow the page's theme, or render a stubbed answer safely
@@ -37,6 +45,7 @@ import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import { ROSTER } from './roster.js';
 import { assertServingBuild, serve } from './serve.js';
 import { QUOTA_ENABLED } from '../site/src/chat/quota.js';
+import { STARTING_PROMPTS } from '../site/src/landing/prompts.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const siteDist = join(root, 'site', 'dist');
@@ -44,6 +53,12 @@ const siteDist = join(root, 'site', 'dist');
 const PORT = 4300;
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 const axePath = createRequire(import.meta.url).resolve('axe-core/axe.min.js');
+/**
+ * The two routes that follow the system color scheme and carry the theme
+ * toggle, site spec section 7. Every other view must stay light.
+ */
+const THEMED_ROUTES = ['/', '/results/'];
+const followsScheme = (route: string) => THEMED_ROUTES.includes(route);
 
 interface AxeResult {
   id: string;
@@ -135,7 +150,7 @@ async function checkRoute(browser: Browser, route: string): Promise<void> {
       if (overflow > 0) fail(`${label} scrolls sideways by ${overflow}px`);
 
       const { dark, darkClass } = await page.evaluate<[], () => ReturnType<typeof pageTheme>>(PAGE_THEME);
-      const shouldBeDark = scheme === 'dark' && route === '/';
+      const shouldBeDark = scheme === 'dark' && followsScheme(route);
       if (dark !== shouldBeDark) fail(`${label}: page is ${dark ? 'dark' : 'light'}, expected ${shouldBeDark ? 'dark' : 'light'}`);
       if (darkClass !== shouldBeDark) fail(`${label}: <html> ${darkClass ? 'has' : 'lacks'} the dark class`);
 
@@ -153,7 +168,7 @@ async function checkRoute(browser: Browser, route: string): Promise<void> {
 
 async function checkFold(browser: Browser): Promise<void> {
   await withPage(browser, 1440, 900, async (page) => {
-    await page.goto(`${ORIGIN}/`, { waitUntil: 'networkidle0' });
+    await page.goto(`${ORIGIN}/results/`, { waitUntil: 'networkidle0' });
     const cells = await page.evaluate(() => {
       const row = document.querySelector('.scoreboard tbody tr:not(.group)');
       const rows = document.querySelectorAll('.scoreboard tbody tr:not(.group)').length;
@@ -201,7 +216,7 @@ async function checkKeyboard(browser: Browser, route: string): Promise<void> {
   });
 }
 
-async function checkThemeToggle(browser: Browser): Promise<void> {
+async function checkThemeToggle(browser: Browser, route: string): Promise<void> {
   await withPage(browser, 1440, 900, async (page) => {
     await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
     const errors: string[] = [];
@@ -218,33 +233,34 @@ async function checkThemeToggle(browser: Browser): Promise<void> {
       // The paint and shadcn's class must agree, or one of them is lying.
       return { dark: theme.dark && theme.darkClass, painted: theme.dark, ...button };
     };
-    await page.goto(`${ORIGIN}/`, { waitUntil: 'networkidle0' });
+    await page.goto(`${ORIGIN}${route}`, { waitUntil: 'networkidle0' });
     await page.evaluate(() => localStorage.clear());
     await page.reload({ waitUntil: 'networkidle0' });
     const start = await state();
-    if (!start.visible) fail('/: the theme toggle is hidden');
-    if (start.dark || start.painted || start.pressed !== 'false') fail(`/: toggle starts ${JSON.stringify(start)} under a light system scheme`);
+    if (!start.visible) fail(`${route}: the theme toggle is hidden`);
+    if (start.dark || start.painted || start.pressed !== 'false') fail(`${route}: toggle starts ${JSON.stringify(start)} under a light system scheme`);
     await page.click('.theme-toggle');
     const flipped = await state();
-    if (!flipped.dark || flipped.pressed !== 'true') fail(`/: toggle click left ${JSON.stringify(flipped)}`);
+    if (!flipped.dark || flipped.pressed !== 'true') fail(`${route}: toggle click left ${JSON.stringify(flipped)}`);
     await page.reload({ waitUntil: 'networkidle0' });
     const kept = await state();
-    if (!kept.dark || kept.pressed !== 'true') fail(`/: dark choice not kept after reload, ${JSON.stringify(kept)}`);
+    if (!kept.dark || kept.pressed !== 'true') fail(`${route}: dark choice not kept after reload, ${JSON.stringify(kept)}`);
     await page.click('.theme-toggle');
     const back = await state();
-    if (back.dark || back.painted || back.pressed !== 'false') fail(`/: second click left ${JSON.stringify(back)}`);
+    if (back.dark || back.painted || back.pressed !== 'false') fail(`${route}: second click left ${JSON.stringify(back)}`);
     await page.evaluate(() => localStorage.clear());
-    if (errors.length > 0) fail(`/: script errors ${errors.join('; ')}`);
-    console.log('  /: toggle switches to dark, survives a reload, and switches back');
+    if (errors.length > 0) fail(`${route}: script errors ${errors.join('; ')}`);
+    console.log(`  ${route}: toggle switches to dark, survives a reload, and switches back`);
   });
 }
 
 /**
- * Site spec section 7: without its script the scoreboard still follows the
- * system scheme and the toggle stays hidden. Other views stay light.
+ * Site spec section 7: without script the landing page and the scoreboard
+ * still follow the system scheme and the toggle stays hidden. Other views
+ * stay light.
  */
 async function checkNoScript(browser: Browser): Promise<void> {
-  for (const route of ['/', '/write-up/']) {
+  for (const route of [...THEMED_ROUTES, '/write-up/']) {
     for (const scheme of ['light', 'dark'] as const) {
       await withPage(browser, 1440, 900, async (page) => {
         await page.setJavaScriptEnabled(false);
@@ -256,7 +272,7 @@ async function checkNoScript(browser: Browser): Promise<void> {
           const el = document.querySelector<HTMLElement>('.theme-toggle');
           return Boolean(el && el.getBoundingClientRect().width > 0);
         });
-        const shouldBeDark = scheme === 'dark' && route === '/';
+        const shouldBeDark = scheme === 'dark' && followsScheme(route);
         const label = `${route} without script, ${scheme}`;
         if (dark !== shouldBeDark) fail(`${label}: page is ${dark ? 'dark' : 'light'}, expected ${shouldBeDark ? 'dark' : 'light'}`);
         if (toggleShown) fail(`${label}: the toggle shows with no script to drive it`);
@@ -512,6 +528,234 @@ async function checkAsk(browser: Browser, route: string): Promise<void> {
   });
 }
 
+const LANDING_HEADLINE = 'Find the front-end library that fits your project';
+
+/**
+ * Advisor spec section 11: the landing page at `/`. At 1440 and 375 in both
+ * schemes it shows the hero with its question box above the fold, the
+ * starting prompts, the navbar in its order, and the link to `/results/`; it
+ * shows no bundle number and no chart; it passes axe and does not scroll
+ * sideways.
+ */
+async function checkLandingLayout(browser: Browser, width: number, height: number, scheme: 'light' | 'dark'): Promise<void> {
+  const label = `/ landing at ${width}px ${scheme}`;
+  await withPage(browser, width, height, async (page) => {
+    await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.goto(`${ORIGIN}/`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('.chat-toggle', { visible: true, timeout: 10000 });
+    const state = await page.evaluate(() => {
+      const main = document.querySelector('main');
+      const h1 = document.querySelector('main h1');
+      const form = document.querySelector<HTMLFormElement>('form#landing-ask');
+      const field = document.querySelector<HTMLTextAreaElement>('#landing-question');
+      const send = form?.querySelector<HTMLButtonElement>('button[type="submit"]:not([name])');
+      const fallback = document.querySelector<HTMLAnchorElement>('.landing-fallback a');
+      const text = main?.innerText ?? '';
+      const current = document.querySelector('nav[aria-label="Site"] [aria-current="page"]');
+      return {
+        h1s: document.querySelectorAll('h1').length,
+        headline: h1?.textContent?.trim() ?? '',
+        formMethod: form?.method,
+        fieldLabel: field ? (document.querySelector(`label[for="${field.id}"]`)?.textContent?.trim() ?? '') : '',
+        sendText: send?.textContent?.trim() ?? '',
+        prompts: [...document.querySelectorAll<HTMLButtonElement>('.landing-prompt')].map((b) => ({
+          text: b.textContent?.trim() ?? '',
+          value: b.value,
+          inForm: b.form === form,
+        })),
+        fallback: fallback?.href ?? null,
+        fallbackVisible: Boolean(fallback && fallback.getBoundingClientRect().width > 0),
+        // The headline, the question box and its send button all sit above the fold.
+        foldEdge: Math.max(...[h1, field, send].map((el) => (el ? el.getBoundingClientRect().bottom : Infinity))),
+        viewport: window.innerHeight,
+        figures: text.match(/\d[\d.,]*\s*(KB|kB|ms)\b/g) ?? [],
+        charts: document.querySelectorAll('main .scoreboard, main table, main [class*="bg-chart-"], main svg:not([aria-hidden="true"])').length,
+        navCurrent: current?.textContent?.trim() ?? '',
+        nav: [...document.querySelectorAll('nav[aria-label="Site"] a')].map((a) => a.textContent?.trim() ?? ''),
+        headerOrder: [...document.querySelectorAll('header nav[aria-label="Site"], header .theme-toggle, header .chat-toggle')].map((el) =>
+          el.matches('nav') ? 'nav' : el.matches('.theme-toggle') ? 'theme' : 'chat',
+        ),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    if (state.h1s !== 1 || state.headline !== LANDING_HEADLINE) fail(`${label}: headline is ${JSON.stringify(state.headline)} (${state.h1s} h1)`);
+    if (state.formMethod !== 'get') fail(`${label}: the question box is not a GET form (${state.formMethod})`);
+    if (!state.fieldLabel) fail(`${label}: the question box has no <label>`);
+    if (!state.sendText) fail(`${label}: the question box has no labelled send button`);
+    const promptTexts = state.prompts.map((p) => p.text);
+    if (JSON.stringify(promptTexts) !== JSON.stringify(STARTING_PROMPTS)) fail(`${label}: starting prompts are ${JSON.stringify(promptTexts)}`);
+    for (const p of state.prompts) {
+      if (p.value !== p.text || !p.inForm) fail(`${label}: prompt ${JSON.stringify(p.text)} carries ${JSON.stringify(p.value)}, in the form: ${p.inForm}`);
+    }
+    if (state.fallback !== `${ORIGIN}/results/` || !state.fallbackVisible) fail(`${label}: the fallback link goes to ${state.fallback}`);
+    if (state.foldEdge > state.viewport) fail(`${label}: the hero ends at ${state.foldEdge}px, below the ${state.viewport}px fold`);
+    if (state.figures.length > 0) fail(`${label}: shows measured figures ${state.figures.join(', ')}`);
+    if (state.charts > 0) fail(`${label}: shows ${state.charts} chart or table elements`);
+    if (state.navCurrent !== 'Advisor') fail(`${label}: the current nav item is ${JSON.stringify(state.navCurrent)}`);
+    if (JSON.stringify(state.nav) !== JSON.stringify(['Advisor', 'Results', 'Write-up', 'Screen spec'])) {
+      fail(`${label}: the navbar reads ${JSON.stringify(state.nav)}`);
+    }
+    if (JSON.stringify(state.headerOrder) !== JSON.stringify(['nav', 'theme', 'chat'])) fail(`${label}: the header order is ${JSON.stringify(state.headerOrder)}`);
+    if (state.overflow > 0) fail(`${label} scrolls sideways by ${state.overflow}px`);
+
+    const { dark, darkClass } = await page.evaluate<[], () => ReturnType<typeof pageTheme>>(PAGE_THEME);
+    const shouldBeDark = scheme === 'dark';
+    if (dark !== shouldBeDark || darkClass !== shouldBeDark) fail(`${label}: page is ${dark ? 'dark' : 'light'}, class dark ${darkClass}`);
+
+    const violations = await axe(page);
+    const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+    for (const v of blocking) {
+      fail(`${label}: axe ${v.impact} ${v.id} (${v.help}) on ${v.nodes.map((n) => n.target.join(' ')).join('; ')}`);
+    }
+    if (errors.length > 0) fail(`${label}: script errors ${errors.join('; ')}`);
+    console.log(
+      `  ${label}: hero ends at ${state.foldEdge.toFixed(0)}px of ${state.viewport}px, ${state.prompts.length} prompts, ` +
+        `axe serious or critical ${blocking.length}, overflow ${state.overflow}px`,
+    );
+  });
+}
+
+/**
+ * Advisor spec section 11: sending from the question box, by Enter or by the
+ * button, and clicking a starting prompt each dispatch `uilc:ask` with the
+ * question, the drawer opens and posts it, and the page stays put.
+ * Shift+Enter adds a line and sends nothing. An empty box only opens the
+ * drawer. `/api/chat/` is intercepted, so no model runs.
+ */
+async function checkLandingAsk(browser: Browser, width: number, height: number): Promise<void> {
+  const label = `/ landing ask at ${width}px`;
+  await withPage(browser, width, height, async (page) => {
+    const errors: string[] = [];
+    const sent: string[] = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname.startsWith('/api/chat')) {
+        let message: unknown;
+        try {
+          message = (JSON.parse(request.postData() ?? '') as { message?: unknown }).message;
+        } catch {
+          message = request.postData();
+        }
+        sent.push(String(message));
+        void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ reply: CHAT_STUB_REPLY }) });
+      } else {
+        void request.continue();
+      }
+    });
+    await page.goto(`${ORIGIN}/`, { waitUntil: 'networkidle0' });
+    await page.evaluate(() => {
+      sessionStorage.clear();
+      localStorage.removeItem('uilc-chat-quota');
+    });
+    await page.reload({ waitUntil: 'networkidle0' });
+    await page.waitForSelector('.chat-toggle', { visible: true, timeout: 10000 });
+    // Record every ask event the page dispatches, beside the chat's own listener.
+    await page.evaluate(() => {
+      const w = window as unknown as { __asks: string[] };
+      w.__asks = [];
+      window.addEventListener('uilc:ask', (event) => {
+        w.__asks.push(String((event as CustomEvent<{ question?: unknown }>).detail?.question));
+      });
+    });
+    const asks = () => page.evaluate(() => (window as unknown as { __asks: string[] }).__asks);
+    const dialogOpens = () =>
+      page
+        .waitForSelector('[role="dialog"]', { visible: true, timeout: 10000 })
+        .then(() => true)
+        .catch(() => false);
+    const closeDialog = async () => {
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('[role="dialog"]', { hidden: true, timeout: 5000 });
+    };
+    const answered = (count: number) =>
+      page
+        .waitForFunction((n) => document.querySelectorAll('.chat-answer').length >= n, { timeout: 5000 }, count)
+        .then(() => true)
+        .catch(() => false);
+    const expected: string[] = [];
+
+    // Shift+Enter adds a line and dispatches nothing.
+    await page.type('#landing-question', 'line one');
+    await page.keyboard.down('Shift');
+    await page.keyboard.press('Enter');
+    await page.keyboard.up('Shift');
+    const multiline = await page.$eval('#landing-question', (el) => (el as HTMLTextAreaElement).value);
+    const early = (await asks()).length;
+    if (multiline !== 'line one\n' || early > 0) fail(`${label}: Shift+Enter gave ${JSON.stringify(multiline)} and ${early} events`);
+    await page.$eval('#landing-question', (el) => {
+      (el as HTMLTextAreaElement).value = '';
+    });
+
+    // Enter sends the typed question and clears the box.
+    const typed = 'My app is a Vue dashboard';
+    await page.type('#landing-question', typed);
+    await page.keyboard.press('Enter');
+    expected.push(typed);
+    if (!(await dialogOpens())) fail(`${label}: Enter in the question box did not open the drawer`);
+    if (!(await answered(1))) fail(`${label}: the typed question got no answer`);
+    const cleared = await page.$eval('#landing-question', (el) => (el as HTMLTextAreaElement).value);
+    if (cleared !== '') fail(`${label}: the question box kept ${JSON.stringify(cleared)} after sending`);
+    await closeDialog();
+
+    // The send button with an empty box only opens the drawer.
+    await page.click('#landing-ask button[type="submit"]:not([name])');
+    expected.push('');
+    if (!(await dialogOpens())) fail(`${label}: the send button with an empty box did not open the drawer`);
+    await new Promise((r) => setTimeout(r, 300));
+    await closeDialog();
+
+    // Each starting prompt sends its own question.
+    for (const [i, prompt] of STARTING_PROMPTS.entries()) {
+      await page.click(`.landing-prompt[value="${prompt}"]`);
+      expected.push(prompt);
+      if (!(await dialogOpens())) fail(`${label}: the prompt ${JSON.stringify(prompt)} did not open the drawer`);
+      if (!(await answered(i + 2))) fail(`${label}: the prompt ${JSON.stringify(prompt)} got no answer`);
+      await closeDialog();
+    }
+
+    const got = await asks();
+    if (JSON.stringify(got) !== JSON.stringify(expected)) fail(`${label}: dispatched ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`);
+    const posted = [typed, ...STARTING_PROMPTS];
+    if (JSON.stringify(sent) !== JSON.stringify(posted)) fail(`${label}: posted ${JSON.stringify(sent)}, expected ${JSON.stringify(posted)}`);
+    if (page.url() !== `${ORIGIN}/`) fail(`${label}: the page navigated to ${page.url()}`);
+    await page.evaluate(() => sessionStorage.clear());
+    if (errors.length > 0) fail(`${label}: script errors ${errors.join('; ')}`);
+    console.log(`  ${label}: Enter, the send button and ${STARTING_PROMPTS.length} prompts each dispatch uilc:ask and open the drawer`);
+  });
+}
+
+/**
+ * Advisor spec section 11, without script: the link to `/results/` is there,
+ * and submitting a starting prompt only reloads the landing page.
+ */
+async function checkLandingNoScript(browser: Browser): Promise<void> {
+  const label = '/ landing without script';
+  await withPage(browser, 375, 812, async (page) => {
+    await page.setJavaScriptEnabled(false);
+    const unexpected: string[] = [];
+    page.on('request', (r) => {
+      if (r.method() !== 'GET' || new URL(r.url()).pathname.startsWith('/api/')) unexpected.push(`${r.method()} ${r.url()}`);
+    });
+    await page.goto(`${ORIGIN}/`, { waitUntil: 'networkidle0' });
+    const fallback = await page.evaluate(() => {
+      const a = document.querySelector<HTMLAnchorElement>('.landing-fallback a');
+      return a && a.getBoundingClientRect().width > 0 ? a.href : null;
+    });
+    if (fallback !== `${ORIGIN}/results/`) fail(`${label}: the fallback link goes to ${fallback}`);
+    const [response] = await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('.landing-prompt')]);
+    const landed = new URL(page.url());
+    const headline = await page.$eval('main h1', (el) => el.textContent?.trim() ?? '').catch(() => '');
+    if (landed.pathname !== '/' || response?.status() !== 200 || headline !== LANDING_HEADLINE) {
+      fail(`${label}: a prompt submit went to ${page.url()} (${response?.status()}), showing ${JSON.stringify(headline)}`);
+    }
+    if (unexpected.length > 0) fail(`${label}: the submit sent ${unexpected.join(', ')}`);
+    console.log(`  ${label}: fallback link to /results/, a prompt submit reloads ${landed.pathname}`);
+  });
+}
+
 async function checkScreen(browser: Browser, build: string): Promise<void> {
   const route = `/screens/${build}/`;
   const expected = /<title>([^<]*)<\/title>/.exec(readFileSync(join(siteDist, 'screens', build, 'index.html'), 'utf8'))?.[1];
@@ -555,17 +799,27 @@ async function main(): Promise<void> {
     chrome = await launch({ chromeFlags: ['--headless=new', '--no-sandbox'] });
     browser = await puppeteer.connect({ browserURL: `http://127.0.0.1:${chrome.port}` });
 
-    const routes = ['/', ...builds.map((b) => `/builds/${b}/`), '/write-up/', '/spec/'];
+    const routes = ['/', '/results/', ...builds.map((b) => `/builds/${b}/`), '/write-up/', '/spec/'];
     console.log('axe-core, assets, and sideways scroll');
     for (const route of routes) await checkRoute(browser, route);
     console.log('fold at 1440x900');
     await checkFold(browser);
     console.log('theme toggle');
-    await checkThemeToggle(browser);
+    for (const route of THEMED_ROUTES) await checkThemeToggle(browser, route);
     console.log('theme without script');
     await checkNoScript(browser);
     console.log('keyboard');
-    for (const route of ['/', `/builds/${builds[0]}/`, '/write-up/']) await checkKeyboard(browser, route);
+    for (const route of ['/', '/results/', `/builds/${builds[0]}/`, '/write-up/']) await checkKeyboard(browser, route);
+    console.log('landing page');
+    for (const [width, height] of [
+      [1440, 900],
+      [375, 812],
+    ] as const) {
+      for (const scheme of ['light', 'dark'] as const) await checkLandingLayout(browser, width, height, scheme);
+    }
+    await checkLandingAsk(browser, 1440, 900);
+    await checkLandingAsk(browser, 375, 812);
+    await checkLandingNoScript(browser);
     console.log('chat island, against a stubbed /api/chat/');
     await checkChat(browser, '/', 1440, 900, 'light');
     await checkChat(browser, '/', 1440, 900, 'dark');
