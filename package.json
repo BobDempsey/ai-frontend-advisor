@@ -14,6 +14,7 @@
     "site:screens": "tsx scripts/screens.ts",
     "site:check": "tsx scripts/site-check.ts",
     "test:api": "vitest run --root api",
+    "advisor:eval": "tsx scripts/advisor-eval.ts",
     "fixture:generate": "tsx packages/fixture/src/generate.ts && tsx scripts/check-fixture.ts",
     "fixture:check": "tsx scripts/check-fixture.ts",
     "typecheck": "tsc --noEmit -p packages/fixture/tsconfig.json && tsc --noEmit -p packages/harness/tsconfig.json && tsc --noEmit -p packages/criteria/tsconfig.json && tsc --noEmit -p site/tsconfig.json && tsc --noEmit -p tsconfig.api.json",

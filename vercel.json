@@ -8,7 +8,7 @@
   "functions": {
     "api/chat.ts": {
       "maxDuration": 60,
-      "includeFiles": "{write-up/README.md,spec/screen-spec.md,results/*.json}"
+      "includeFiles": "{write-up/README.md,spec/screen-spec.md,results/*.json,advisor/notes.md}"
     }
   }
 }

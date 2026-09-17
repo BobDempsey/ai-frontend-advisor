@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ROSTER } from '../../scripts/roster';
-import { buildSystemPrompt, loadGrounding } from './grounding';
+import { LIMITS_SENTENCE, buildSystemPrompt, loadGrounding } from './grounding';
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -52,6 +52,49 @@ describe('loadGrounding and buildSystemPrompt, on the real repo', () => {
     expect(prompt).toContain('/builds/<build>/');
     expect(prompt).toContain('/screens/<build>/');
     expect(prompt).toContain('/write-up/');
+    expect(prompt).toContain('/spec/');
+  });
+
+  it('states the advisor rules from advisor spec section 6', () => {
+    // Ask before recommending when the needs are unknown, with the four intake questions.
+    expect(prompt).toContain('Ask before recommending when the needs are unknown.');
+    expect(prompt).toMatch(/Ask up to four short questions in one message: which framework \(React, Vue, or either\), how much bundle weight matters, what accessibility bar the project has, and whether the team would rather style everything itself or start from finished components\./);
+    expect(prompt).toContain('Ask these only once per conversation');
+    // Keep a short list to two or three.
+    expect(prompt).toContain('Keep a short list to two or three libraries, in order, and never more than three.');
+    // Name the deciding need for each pick.
+    expect(prompt).toContain('Name the deciding need for each pick');
+    // Quote the four fields from advisor spec section 4 for each pick.
+    expect(prompt).toContain('Quote the four fields for each pick');
+    for (const field of [
+      'bundle.deltaGzipKb',
+      'ergonomics.handBuilt',
+      'accessibility.requirementsNeedingCustomCode',
+      'render.lighthouseFcpMsMedian',
+    ]) {
+      expect(prompt.slice(prompt.indexOf('Quote the four fields for each pick'))).toContain(field);
+    }
+    // Answer anything outside the eight with the limits sentence.
+    expect(prompt).toContain(`Answer anything outside the eight with the limits sentence: "${LIMITS_SENTENCE}"`);
+    expect(prompt).toContain('Never answer such a question as if it had been measured.');
+  });
+
+  it('allows a short list but still no winner and no ranking of all eight', () => {
+    expect(prompt).toMatch(/Never name a single overall winner, rank all eight builds, call any library the best, or give a combined score\./);
+    expect(prompt).toContain('never more than three');
+  });
+
+  it('links the scoreboard at /results/ and the advisor at /', () => {
+    expect(prompt).toContain('/results/ for the scoreboard, and / for this advisor');
+    expect(prompt).not.toMatch(/\s\/ for the scoreboard/);
+    expect(prompt).toContain('Link each pick to /builds/<build>/');
+  });
+
+  it('includes advisor/notes.md in full', () => {
+    const notes = readFileSync(join(repoRoot, 'advisor', 'notes.md'), 'utf8').replace(/\r\n/g, '\n');
+    expect(grounding.notes).toBe(notes);
+    expect(prompt).toContain(notes);
+    expect(prompt).toContain('darkModeSelector');
   });
 
   it('has no em dash in the rules it adds', () => {
@@ -69,7 +112,7 @@ describe('loadGrounding, on a broken copy', () => {
 
   const copy = () => {
     dir = mkdtempSync(join(tmpdir(), 'uilc-grounding-'));
-    for (const part of ['results', 'write-up', 'spec']) cpSync(join(repoRoot, part), join(dir, part), { recursive: true });
+    for (const part of ['results', 'write-up', 'spec', 'advisor']) cpSync(join(repoRoot, part), join(dir, part), { recursive: true });
     return dir;
   };
 
@@ -88,6 +131,19 @@ describe('loadGrounding, on a broken copy', () => {
   it('fails loudly when the write-up is missing', () => {
     const root = copy();
     rmSync(join(root, 'write-up', 'README.md'));
-    expect(() => loadGrounding(root)).toThrow();
+    expect(() => loadGrounding(root)).toThrow(/write-up\/README\.md/);
+  });
+
+  it('fails loudly, naming the file, when advisor/notes.md is missing', () => {
+    const root = copy();
+    expect(() => loadGrounding(root)).not.toThrow();
+    rmSync(join(root, 'advisor', 'notes.md'));
+    expect(() => loadGrounding(root)).toThrow(/advisor\/notes\.md/);
+  });
+
+  it('fails loudly, naming the file, when a result file is missing', () => {
+    const root = copy();
+    rmSync(join(root, 'results', 'react-mui.json'));
+    expect(() => loadGrounding(root)).toThrow(/results\/react-mui\.json/);
   });
 });

@@ -27,10 +27,12 @@
  *   or scrolls sideways at 1440 or 375 in either scheme, does not hand a
  *   question to the drawer as a `uilc:ask` event, or without script loses
  *   its link to `/results/` or lets a submit go anywhere but back to itself
- * - the chat island, on the scoreboard and two other views, does not open
+ * - the chat island, on the landing page and two other views, does not open
  *   and close from the keyboard, return focus to its button, pass axe while
- *   open, follow the page's theme, or render a stubbed answer safely
- *   (`/api/chat/` is intercepted, so no model is called)
+ *   open, follow the page's theme, carry the advisor's title, description and
+ *   starting points, or render a stubbed answer safely (`/api/chat/` is
+ *   intercepted, so no model is called)
+ * - a starting point in the drawer does not go out as the first message
  * - a `uilc:ask` window event does not open the drawer and post its
  *   question, or an empty question posts anything
  * - one of the eight screens under `/screens/<build>/` fails to load an asset
@@ -285,6 +287,11 @@ async function checkNoScript(browser: Browser): Promise<void> {
 /** The stubbed answer. The image tag must not render: the chat allows no raw HTML. */
 const CHAT_STUB_REPLY = 'Take a suite, see [the write-up](/write-up/). <img src="x" class="raw-html-leak">';
 
+/** Advisor spec section 7: the drawer's title, what its description says, and its starting points. */
+const ADVISOR_TITLE = 'AI frontend advisor';
+const ADVISOR_DESCRIPTION = /helps you pick among the eight libraries this site measured/i;
+const ADVISOR_SUGGESTIONS = ['Help me pick a library for my project', 'Compare Vuetify and Quasar', 'Why is Ant Design over budget?'];
+
 /**
  * Whether the element under `selector` paints a dark background. Runs in the
  * page, the same canvas read as `pageTheme`.
@@ -384,8 +391,28 @@ async function checkChat(browser: Browser, route: string, width: number, height:
     if (!shape.inViewport) fail(`${label}: the drawer does not fit the viewport, it spans ${shape.rect}`);
     if (shape.overflow > 0) fail(`${label}: the open drawer scrolls the page sideways by ${shape.overflow}px`);
 
+    // The advisor's wording: the dialog is named by its title, and an empty
+    // conversation offers the three starting points as buttons.
+    // No named helper inside evaluate: tsx wraps named functions in a `__name`
+    // call that does not exist in the page.
+    const wording = await page.evaluate(() => {
+      const dialog = document.querySelector('[role="dialog"]');
+      return {
+        title: document.getElementById(dialog?.getAttribute('aria-labelledby') ?? '')?.textContent?.trim() ?? '',
+        description: document.getElementById(dialog?.getAttribute('aria-describedby') ?? '')?.textContent?.trim() ?? '',
+        suggestions: [...(dialog?.querySelectorAll('.chat-log button') ?? [])].map((b) => b.textContent?.trim() ?? ''),
+        toggle: document.querySelector('.chat-toggle')?.getAttribute('aria-label') ?? '',
+      };
+    });
+    if (wording.title !== ADVISOR_TITLE) fail(`${label}: the drawer is titled ${JSON.stringify(wording.title)}, expected ${JSON.stringify(ADVISOR_TITLE)}`);
+    if (!ADVISOR_DESCRIPTION.test(wording.description)) fail(`${label}: the drawer description is ${JSON.stringify(wording.description)}`);
+    if (JSON.stringify(wording.suggestions) !== JSON.stringify(ADVISOR_SUGGESTIONS)) {
+      fail(`${label}: the drawer suggests ${JSON.stringify(wording.suggestions)}, expected ${JSON.stringify(ADVISOR_SUGGESTIONS)}`);
+    }
+    if (!wording.toggle.includes(ADVISOR_TITLE)) fail(`${label}: the chat button is named ${JSON.stringify(wording.toggle)}`);
+
     const dark = await page.evaluate(elementDark, '[role="dialog"]');
-    const shouldBeDark = scheme === 'dark' && route === '/';
+    const shouldBeDark = scheme === 'dark' && followsScheme(route);
     if (dark !== shouldBeDark) fail(`${label}: drawer is ${dark ? 'dark' : 'light'}, expected ${shouldBeDark ? 'dark' : 'light'}`);
 
     const violations = await axe(page);
@@ -450,7 +477,7 @@ async function checkChat(browser: Browser, route: string, width: number, height:
     if (errors.length > 0) fail(`${label}: script errors ${errors.join('; ')}`);
     console.log(
       `  ${label}: opens and closes by keyboard, focus returns, axe serious or critical ${blocking.length}, ` +
-        `${dark ? 'dark' : 'light'}, stubbed answer rendered, history kept`,
+        `${dark ? 'dark' : 'light'}, advisor title and suggestions shown, stubbed answer rendered, history kept`,
     );
   });
 }
@@ -756,6 +783,63 @@ async function checkLandingNoScript(browser: Browser): Promise<void> {
   });
 }
 
+/**
+ * Advisor spec section 7: a starting point in the drawer sends its own text as
+ * the first message. `/api/chat/` is intercepted, so no model runs.
+ */
+async function checkSuggestion(browser: Browser, route: string): Promise<void> {
+  const label = `${route} advisor suggestion`;
+  const question = ADVISOR_SUGGESTIONS[0] ?? '';
+  await withPage(browser, 1440, 900, async (page) => {
+    const errors: string[] = [];
+    const sent: unknown[] = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname.startsWith('/api/chat')) {
+        try {
+          sent.push(JSON.parse(request.postData() ?? ''));
+        } catch {
+          sent.push(request.postData());
+        }
+        void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ reply: CHAT_STUB_REPLY }) });
+      } else {
+        void request.continue();
+      }
+    });
+
+    await page.goto(`${ORIGIN}${route}`, { waitUntil: 'networkidle0' });
+    await page.evaluate(() => {
+      sessionStorage.clear();
+      localStorage.removeItem('uilc-chat-quota');
+    });
+    await page.waitForSelector('.chat-toggle', { visible: true, timeout: 10000 });
+    await page.click('.chat-toggle');
+    await page.waitForSelector('[role="dialog"] .chat-log button', { visible: true, timeout: 10000 });
+    const clicked = await page.evaluate((text) => {
+      const button = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] .chat-log button')].find(
+        (b) => b.textContent?.trim() === text,
+      );
+      button?.click();
+      return Boolean(button);
+    }, question);
+    if (!clicked) fail(`${label}: no starting point reads ${JSON.stringify(question)}`);
+    const answered = await page
+      .waitForSelector('.chat-answer a[href="/write-up/"]', { timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!answered) fail(`${label}: the stubbed answer never rendered`);
+    const body = sent[0] as { message?: unknown; history?: unknown } | undefined;
+    if (sent.length !== 1 || body?.message !== question || !Array.isArray(body.history) || body.history.length !== 0) {
+      fail(`${label}: expected one POST with the starting point and no history, got ${JSON.stringify(sent)}`);
+    }
+    await page.evaluate(() => sessionStorage.clear());
+
+    if (errors.length > 0) fail(`${label}: script errors ${errors.join('; ')}`);
+    console.log(`  ${label}: "${question}" goes out as the first message`);
+  });
+}
+
 async function checkScreen(browser: Browser, build: string): Promise<void> {
   const route = `/screens/${build}/`;
   const expected = /<title>([^<]*)<\/title>/.exec(readFileSync(join(siteDist, 'screens', build, 'index.html'), 'utf8'))?.[1];
@@ -827,6 +911,7 @@ async function main(): Promise<void> {
     await checkChat(browser, '/write-up/', 1440, 900, 'dark');
     await checkChat(browser, `/builds/${builds[0]}/`, 375, 812, 'light');
     await checkAsk(browser, '/write-up/');
+    await checkSuggestion(browser, '/spec/');
     if (withScreens) {
       console.log('screens');
       for (const build of builds) await checkScreen(browser, build);
