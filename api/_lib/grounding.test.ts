@@ -60,6 +60,9 @@ describe('loadGrounding and buildSystemPrompt, on the real repo', () => {
     expect(prompt).toContain('Ask before recommending when the needs are unknown.');
     expect(prompt).toMatch(/Ask up to four short questions in one message: which framework \(React, Vue, or either\), how much bundle weight matters, what accessibility bar the project has, and whether the team would rather style everything itself or start from finished components\./);
     expect(prompt).toContain('Ask these only once per conversation');
+    // A winner request without a project gets no winner and the intake questions, never the per-situation picks.
+    expect(prompt).toContain('When a reader asks for a winner or for "the best" library and has not described the project, say that the comparison names no overall winner, then ask the intake questions below.');
+    expect(prompt).toContain("Never answer a winner request by listing the write-up's per-situation picks, and never name more than three libraries as picks in one reply.");
     // Keep a short list to two or three.
     expect(prompt).toContain('Keep a short list to two or three libraries, in order, and never more than three.');
     // Name the deciding need for each pick.

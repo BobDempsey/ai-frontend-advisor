@@ -44,7 +44,11 @@ interface Case {
 const sentences = (text: string) => text.split(/(?<=[.!?])\s+|\n+/).filter((s) => s.trim());
 const NEGATION = /\b(no|not|never|none|nor|without|isn't|doesn't|don't|won't|can't|cannot)\b|n't\b/i;
 
-/** Library names that head a pick: a numbered item, a heading, or a bold lead in a list item. */
+/**
+ * Library names that head a pick: a numbered item, a heading, or a bold lead in
+ * a list item. Every library named in a line's head counts, so a line such as
+ * "**Need X:** Chakra UI or Material UI" names two picks, not one.
+ */
 function picksIn(reply: string): string[] {
   const picks = new Set<string>();
   for (const line of reply.split('\n')) {
@@ -53,8 +57,8 @@ function picksIn(reply: string): string[] {
     const head = lead.slice(0, 60);
     const named = LIBRARIES.map((lib) => ({ lib, at: head.indexOf(lib) }))
       .filter((m) => m.at >= 0)
-      .sort((a, b) => a.at - b.at)[0];
-    if (named) picks.add(named.lib);
+      .sort((a, b) => a.at - b.at);
+    for (const m of named) picks.add(m.lib);
   }
   return [...picks];
 }
