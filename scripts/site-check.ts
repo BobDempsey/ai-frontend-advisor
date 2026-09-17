@@ -34,6 +34,7 @@ import { launch, type LaunchedChrome } from 'chrome-launcher';
 import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import { ROSTER } from './roster.js';
 import { assertServingBuild, serve } from './serve.js';
+import { QUOTA_ENABLED } from '../site/src/chat/quota.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const siteDist = join(root, 'site', 'dist');
@@ -408,7 +409,8 @@ async function checkChat(browser: Browser, route: string, width: number, height:
     }));
     if (after.leaked > 0) fail(`${label}: raw HTML from the answer was rendered`);
     const quota = await page.$eval('.chat-quota', (el) => el.textContent ?? '').catch(() => '');
-    if (quota !== '5 questions remaining.') fail(`${label}: after the fifth question the drawer said ${JSON.stringify(quota)}`);
+    const expectedQuota = QUOTA_ENABLED ? '5 questions remaining.' : '';
+    if (quota !== expectedQuota) fail(`${label}: after the fifth question the drawer said ${JSON.stringify(quota)}`);
     if (after.field !== '') fail(`${label}: the field kept ${JSON.stringify(after.field)} after sending`);
     await page.waitForFunction(() => document.activeElement?.id === 'chat-input', { timeout: 5000 }).catch(() => undefined);
     if (!(await activeMatches(page, '#chat-input'))) fail(`${label}: focus left the question field after the answer`);

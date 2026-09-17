@@ -9,6 +9,11 @@
  * throw; the count then lives for this page view only.
  */
 export const QUESTION_LIMIT = 10;
+/**
+ * False while the firewall rule is paused for testing (2026-09-17): the count
+ * then never moves, so the drawer shows nothing and never disables Send.
+ */
+export const QUOTA_ENABLED = false;
 /** Show the count once this many questions are used. */
 export const WARN_AFTER = 5;
 /** The firewall rule's window. Kept here only to expire old entries. */
@@ -39,6 +44,7 @@ function write(stamps: number[]): void {
 
 /** Questions left before the firewall is expected to refuse, never below zero. */
 export function questionsLeft(now = Date.now()): number {
+  if (!QUOTA_ENABLED) return QUESTION_LIMIT;
   return Math.max(0, QUESTION_LIMIT - read(now).length);
 }
 
