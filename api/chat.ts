@@ -12,15 +12,16 @@ import { createRateLimiter } from './_lib/guard';
 import { createChatHandler } from './_lib/handler';
 import { askModel } from './_lib/model';
 
-// Paused on 2026-09-17 so the owner can test the advisor freely, together
-// with the Vercel Firewall rule. Set back to false when tasks.md says to.
-const RATE_LIMIT_PAUSED = true;
+// Set true only to test without limits, together with the Vercel Firewall
+// rule (paused 2026-09-17, back on the same day). See handoff.md section 20.
+const RATE_LIMIT_PAUSED = false;
 
 const handle = createChatHandler({
   ask: askModel,
   systemPrompt: () => buildSystemPrompt(loadGrounding()),
-  // Best effort, per instance. See handoff.md for the durable upgrade.
-  limiter: RATE_LIMIT_PAUSED ? { take: () => true } : createRateLimiter({ limit: 12, windowMs: 10 * 60_000 }),
+  // Best effort, per instance, and a second layer only: the firewall rule
+  // allows 20 per IP per 10 minutes, so this sits slightly above it.
+  limiter: RATE_LIMIT_PAUSED ? { take: () => true } : createRateLimiter({ limit: 25, windowMs: 10 * 60_000 }),
 });
 
 export default {

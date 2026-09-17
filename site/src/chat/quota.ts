@@ -8,12 +8,12 @@
  * localStorage, so the count survives new tabs. Storage can be missing or
  * throw; the count then lives for this page view only.
  */
-export const QUESTION_LIMIT = 10;
+export const QUESTION_LIMIT = 20;
 /**
- * False while the firewall rule is paused for testing (2026-09-17): the count
- * then never moves, so the drawer shows nothing and never disables Send.
+ * Set false only while the firewall rule is paused for testing: the count then
+ * never moves, so the drawer shows nothing and never disables Send.
  */
-export const QUOTA_ENABLED = false;
+export const QUOTA_ENABLED = true;
 /** Show the count once this many questions are used. */
 export const WARN_AFTER = 5;
 /** The firewall rule's window. Kept here only to expire old entries. */

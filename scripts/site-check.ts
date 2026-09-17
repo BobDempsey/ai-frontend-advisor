@@ -46,7 +46,7 @@ import { launch, type LaunchedChrome } from 'chrome-launcher';
 import puppeteer, { type Browser, type Page } from 'puppeteer-core';
 import { ROSTER } from './roster.js';
 import { assertServingBuild, serve } from './serve.js';
-import { QUOTA_ENABLED } from '../site/src/chat/quota.js';
+import { QUESTION_LIMIT, QUOTA_ENABLED } from '../site/src/chat/quota.js';
 import { STARTING_PROMPTS } from '../site/src/landing/prompts.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -454,7 +454,9 @@ async function checkChat(browser: Browser, route: string, width: number, height:
     }));
     if (after.leaked > 0) fail(`${label}: raw HTML from the answer was rendered`);
     const quota = await page.$eval('.chat-quota', (el) => el.textContent ?? '').catch(() => '');
-    const expectedQuota = QUOTA_ENABLED ? '5 questions remaining.' : '';
+    // The quota must be on; four stored questions plus this one leave QUESTION_LIMIT - 5.
+    if (!QUOTA_ENABLED) fail(`${label}: QUOTA_ENABLED is false, so the drawer never counts questions`);
+    const expectedQuota = `${QUESTION_LIMIT - 5} questions remaining.`;
     if (quota !== expectedQuota) fail(`${label}: after the fifth question the drawer said ${JSON.stringify(quota)}`);
     if (after.field !== '') fail(`${label}: the field kept ${JSON.stringify(after.field)} after sending`);
     await page.waitForFunction(() => document.activeElement?.id === 'chat-input', { timeout: 5000 }).catch(() => undefined);
