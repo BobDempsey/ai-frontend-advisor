@@ -10,4 +10,4 @@
 - [x] Test the advisor together on the live site
 - [x] Re-enable the chat rate limits (firewall rule, RATE_LIMIT_PAUSED, QUOTA_ENABLED)
 - [ ] Set a monthly spend cap on the OpenAI project
-- [ ] Remove the worktrees and their branches
+- [x] Remove the worktrees and their branches
