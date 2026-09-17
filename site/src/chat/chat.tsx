@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { LoaderCircle, RotateCcw, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -27,7 +28,14 @@ export const SUGGESTIONS = ['Help me pick a library for my project', 'Compare Vu
 
 const linkClass = 'font-medium underline underline-offset-2';
 
-/** Markdown with no raw HTML: `skipHtml` drops it, and links get the site's style. */
+/**
+ * Markdown with no raw HTML: `skipHtml` drops it, and links get the site's
+ * style. `remark-gfm` adds tables, which advisor spec section 4 asks for when
+ * comparing two libraries. A table scrolls sideways inside its own region, so
+ * a wide one never widens the drawer, and the region takes focus so keyboard
+ * readers can scroll it. Cell alignment from the markdown arrives as an inline
+ * `text-align`, which the cells pass through.
+ */
 const markdown: Components = {
   a: ({ href, children }) => {
     const external = typeof href === 'string' && /^https?:/i.test(href);
@@ -42,9 +50,21 @@ const markdown: Components = {
   ol: ({ children }) => <ol className="my-1.5 list-decimal space-y-1 pl-5">{children}</ol>,
   code: ({ children }) => <code className="rounded bg-muted px-1 font-mono text-[0.85em]">{children}</code>,
   table: ({ children }) => (
-    <div className="my-1.5 overflow-x-auto">
-      <table className="text-xs [&_td]:border [&_td]:px-1.5 [&_th]:border [&_th]:px-1.5">{children}</table>
+    <div className="chat-table my-2 max-w-full overflow-x-auto rounded-md border" role="region" aria-label="Table" tabIndex={0}>
+      <table className="w-full border-collapse text-xs">{children}</table>
     </div>
+  ),
+  thead: ({ children }) => <thead className="bg-muted">{children}</thead>,
+  tr: ({ children }) => <tr className="border-b last:border-b-0">{children}</tr>,
+  th: ({ children, style }) => (
+    <th scope="col" style={style} className="px-2 py-1.5 text-left font-semibold whitespace-nowrap">
+      {children}
+    </th>
+  ),
+  td: ({ children, style }) => (
+    <td style={style} className="px-2 py-1.5 align-top tabular-nums">
+      {children}
+    </td>
   ),
 };
 
@@ -245,7 +265,7 @@ export function ChatIsland({ initialOpen = false, initialQuestion = '' }: { init
               {entry.role === 'user' || entry.failed ? (
                 entry.content
               ) : (
-                <ReactMarkdown skipHtml components={markdown}>
+                <ReactMarkdown skipHtml remarkPlugins={[remarkGfm]} components={markdown}>
                   {entry.content}
                 </ReactMarkdown>
               )}

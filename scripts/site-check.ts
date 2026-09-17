@@ -284,8 +284,21 @@ async function checkNoScript(browser: Browser): Promise<void> {
   }
 }
 
-/** The stubbed answer. The image tag must not render: the chat allows no raw HTML. */
-const CHAT_STUB_REPLY = 'Take a suite, see [the write-up](/write-up/). <img src="x" class="raw-html-leak">';
+/**
+ * The stubbed answer. The image tag must not render: the chat allows no raw
+ * HTML. The table must render as a real <table> (advisor spec section 4 asks
+ * for one when comparing two libraries), and its wide cells must scroll inside
+ * the answer rather than push the drawer or the page sideways at 375px.
+ */
+const CHAT_STUB_TABLE_HEADERS = ['Measure', 'Vuetify (vue-vuetify)', 'Quasar (vue-quasar)'];
+const CHAT_STUB_REPLY = [
+  'Take a suite, see [the write-up](/write-up/). <img src="x" class="raw-html-leak">',
+  '',
+  `| ${CHAT_STUB_TABLE_HEADERS.join(' | ')} |`,
+  '| :--- | ---: | ---: |',
+  '| Gzipped size over the framework baseline, in kilobytes | 123.45 | 67.89 |',
+  '| Criteria passed out of eighteen, with the failures listed by number | 18 | 17 |',
+].join('\n');
 
 /** Advisor spec section 7: the drawer's title, what its description says, and its starting points. */
 const ADVISOR_TITLE = 'AI frontend advisor';
@@ -453,6 +466,46 @@ async function checkChat(browser: Browser, route: string, width: number, height:
       field: (document.querySelector('#chat-input') as HTMLTextAreaElement | null)?.value,
     }));
     if (after.leaked > 0) fail(`${label}: raw HTML from the answer was rendered`);
+
+    // The markdown table renders as a table, scrolls inside its own region,
+    // and leaves the drawer and the page without sideways scroll.
+    const table = await page.evaluate(() => {
+      const el = document.querySelector('.chat-answer table');
+      const region = el?.closest('.chat-answer [role="region"]');
+      const dialog = document.querySelector('[role="dialog"]');
+      const log = document.querySelector('.chat-log');
+      return {
+        found: Boolean(el),
+        headers: [...(el?.querySelectorAll('thead th') ?? [])].map((th) => th.textContent?.trim() ?? ''),
+        rows: el?.querySelectorAll('tbody tr').length ?? 0,
+        numericAlign: [...(el?.querySelectorAll('tbody td:nth-child(2), tbody td:nth-child(3)') ?? [])].map((td) => getComputedStyle(td).textAlign),
+        pipes: [...document.querySelectorAll('.chat-answer p')].some((p) => (p.textContent ?? '').includes('| ---')),
+        regionNamed: Boolean(region?.getAttribute('aria-label')),
+        regionFocusable: region?.getAttribute('tabindex') === '0',
+        regionFits: Boolean(region && log && region.getBoundingClientRect().right <= log.getBoundingClientRect().right + 0.5),
+        dialogOverflow: dialog ? dialog.scrollWidth - dialog.clientWidth : -1,
+        logOverflow: log ? log.scrollWidth - log.clientWidth : -1,
+        pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    if (!table.found || table.pipes) fail(`${label}: the stubbed answer's markdown table did not render as a <table>`);
+    if (JSON.stringify(table.headers) !== JSON.stringify(CHAT_STUB_TABLE_HEADERS)) {
+      fail(`${label}: the answer table's headers are ${JSON.stringify(table.headers)}, expected ${JSON.stringify(CHAT_STUB_TABLE_HEADERS)}`);
+    }
+    if (table.rows !== 2) fail(`${label}: the answer table has ${table.rows} body rows, expected 2`);
+    if (table.numericAlign.length !== 4 || table.numericAlign.some((a) => a !== 'right')) {
+      fail(`${label}: the answer table's right-aligned columns are aligned ${JSON.stringify(table.numericAlign)}`);
+    }
+    if (!table.regionNamed || !table.regionFocusable) fail(`${label}: the answer table's scroll region is not named and focusable`);
+    if (!table.regionFits) fail(`${label}: the answer table's scroll region is wider than the conversation`);
+    if (table.dialogOverflow !== 0 || table.logOverflow !== 0 || table.pageOverflow > 0) {
+      fail(`${label}: the answer table scrolls sideways, drawer ${table.dialogOverflow}px, conversation ${table.logOverflow}px, page ${table.pageOverflow}px`);
+    }
+    const answerViolations = await axe(page);
+    const answerBlocking = answerViolations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+    for (const v of answerBlocking) {
+      fail(`${label}: axe with the answer table shown, ${v.impact} ${v.id} (${v.help}) on ${v.nodes.map((n) => n.target.join(' ')).join('; ')}`);
+    }
     const quota = await page.$eval('.chat-quota', (el) => el.textContent ?? '').catch(() => '');
     // The quota must be on; four stored questions plus this one leave QUESTION_LIMIT - 5.
     if (!QUOTA_ENABLED) fail(`${label}: QUOTA_ENABLED is false, so the drawer never counts questions`);
@@ -479,7 +532,8 @@ async function checkChat(browser: Browser, route: string, width: number, height:
     if (errors.length > 0) fail(`${label}: script errors ${errors.join('; ')}`);
     console.log(
       `  ${label}: opens and closes by keyboard, focus returns, axe serious or critical ${blocking.length}, ` +
-        `${dark ? 'dark' : 'light'}, advisor title and suggestions shown, stubbed answer rendered, history kept`,
+        `${dark ? 'dark' : 'light'}, advisor title and suggestions shown, stubbed answer rendered with its table ` +
+        `(axe serious or critical ${answerBlocking.length}), history kept`,
     );
   });
 }
