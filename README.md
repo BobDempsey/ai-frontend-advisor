@@ -2,7 +2,7 @@
 
 Eight UI libraries build the same `/tickets` screen, so they can be compared on ergonomics, bundle size, and accessibility defaults. The spec in [`spec/screen-spec.md`](spec/screen-spec.md) is the fixed input, and a library that cannot meet a requirement fails it rather than changing it.
 
-The results, the write-up, and the spec are published at [ai-frontend-advisor.bobdempsey83.com](https://ai-frontend-advisor.bobdempsey83.com). The eight live demos are [Headless UI](https://ai-frontend-advisor.bobdempsey83.com/screens/react-headless/), [shadcn/ui](https://ai-frontend-advisor.bobdempsey83.com/screens/react-shadcn/), [Material UI](https://ai-frontend-advisor.bobdempsey83.com/screens/react-mui/), [Quasar](https://ai-frontend-advisor.bobdempsey83.com/screens/vue-quasar/), [Chakra UI](https://ai-frontend-advisor.bobdempsey83.com/screens/react-chakra/), [Vuetify](https://ai-frontend-advisor.bobdempsey83.com/screens/vue-vuetify/), [PrimeVue](https://ai-frontend-advisor.bobdempsey83.com/screens/vue-primevue/), and [Ant Design](https://ai-frontend-advisor.bobdempsey83.com/screens/react-antd/).
+The site at [ai-frontend-advisor.bobdempsey83.com](https://ai-frontend-advisor.bobdempsey83.com) opens on the advisor, a chat that asks about your project and answers with a short list of two or three of the eight libraries, quoting only numbers from this repo. It never names an overall winner, and it says so when a question goes past the data. The scoreboard is at [`/results/`](https://ai-frontend-advisor.bobdempsey83.com/results/), next to the write-up and the spec. The eight live demos are [Headless UI](https://ai-frontend-advisor.bobdempsey83.com/screens/react-headless/), [shadcn/ui](https://ai-frontend-advisor.bobdempsey83.com/screens/react-shadcn/), [Material UI](https://ai-frontend-advisor.bobdempsey83.com/screens/react-mui/), [Quasar](https://ai-frontend-advisor.bobdempsey83.com/screens/vue-quasar/), [Chakra UI](https://ai-frontend-advisor.bobdempsey83.com/screens/react-chakra/), [Vuetify](https://ai-frontend-advisor.bobdempsey83.com/screens/vue-vuetify/), [PrimeVue](https://ai-frontend-advisor.bobdempsey83.com/screens/vue-primevue/), and [Ant Design](https://ai-frontend-advisor.bobdempsey83.com/screens/react-antd/).
 
 This is sample content for a demo. The domain, the data, and the numbers are fictional.
 
@@ -41,7 +41,9 @@ Two differences are recorded rather than normalized: badge label casing varies b
 | `baselines/*` | an empty React and Vue app, the floor each delta subtracts |
 | `results/*.json` | one scored result per build |
 | `write-up/README.md` | the article |
-| `site/` | the results site: React and shadcn/ui rendered to static HTML at build time, specified in `spec/site-spec.md` |
+| `site/` | the site: React and shadcn/ui rendered to static HTML at build time, specified in `spec/site-spec.md` |
+| `api/` | the advisor's Vercel Function and its tests, specified in `spec/advisor-spec.md` |
+| `advisor/notes.md` | known problems and fixes per build, part of what the advisor answers from |
 | `scripts/` | scaffolding, scoring, Lighthouse, screenshots, and the site's screens build and browser checks |
 
 ## Commands
@@ -67,10 +69,12 @@ pnpm site:build          # site/dist, one static HTML file per view
 pnpm site:screens        # rebuild the eight apps under site/dist/screens/ (run after site:build)
 pnpm site:check          # axe, keyboard, fold, theme, and screen checks in Chrome
 pnpm dev                 # the site on http://localhost:5190, chat included (key from .env.local)
+pnpm test:api            # the advisor function's Vitest suite
+pnpm advisor:eval        # 12 questions against the live model, by hand (spends OpenAI credit)
 pnpm screenshots --all   # recapture the sixteen committed screenshots, by hand
 ```
 
-Vercel builds the site from `main` on every push, using `vercel.json`. The scoreboard follows the reader's system color scheme and has a light and dark toggle in the navbar; every other page stays light.
+Vercel builds the site from `main` on every push, using `vercel.json`. The advisor page and the scoreboard follow the reader's system color scheme and have a light and dark toggle in the navbar; every other page stays light. The chat allows 20 questions per visitor every 10 minutes.
 
 `tickets.json` is committed and the seed is fixed, so regenerating produces the same file. If it does not, the earlier bundle numbers stop comparing and the run starts over.
 
