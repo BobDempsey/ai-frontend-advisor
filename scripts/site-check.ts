@@ -23,6 +23,8 @@
  *   and close from the keyboard, return focus to its button, pass axe while
  *   open, follow the page's theme, or render a stubbed answer safely
  *   (`/api/chat/` is intercepted, so no model is called)
+ * - a `uilc:ask` window event does not open the drawer and post its
+ *   question, or an empty question posts anything
  * - one of the eight screens under `/screens/<build>/` fails to load an asset
  *   or never paints its 25 rows (skipped with `--no-screens`)
  */
@@ -437,6 +439,79 @@ async function checkChat(browser: Browser, route: string, width: number, height:
   });
 }
 
+/**
+ * The `uilc:ask` contract in `site/src/chat/main.ts`: a page dispatches the
+ * event, the island loads, the drawer opens, and the question goes out as the
+ * first message. Once the island exists, an empty question only opens the
+ * drawer. `/api/chat/` is intercepted, so no model runs.
+ */
+async function checkAsk(browser: Browser, route: string): Promise<void> {
+  const label = `${route} ask event`;
+  const question = 'Compare Vuetify and Quasar';
+  await withPage(browser, 1440, 900, async (page) => {
+    const errors: string[] = [];
+    const sent: { method: string; body: unknown }[] = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    await page.setRequestInterception(true);
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname.startsWith('/api/chat')) {
+        let body: unknown;
+        try {
+          body = JSON.parse(request.postData() ?? '');
+        } catch {
+          body = request.postData();
+        }
+        sent.push({ method: request.method(), body });
+        void request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ reply: CHAT_STUB_REPLY }) });
+      } else {
+        void request.continue();
+      }
+    });
+
+    await page.goto(`${ORIGIN}${route}`, { waitUntil: 'networkidle0' });
+    await page.evaluate(() => {
+      sessionStorage.clear();
+      localStorage.removeItem('uilc-chat-quota');
+    });
+    await page.waitForSelector('.chat-toggle', { visible: true, timeout: 10000 });
+    const ask = (q: string) => page.evaluate((text) => void window.dispatchEvent(new CustomEvent('uilc:ask', { detail: { question: text } })), q);
+
+    await ask(question);
+    const opened = await page
+      .waitForSelector('[role="dialog"]', { visible: true, timeout: 10000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!opened) fail(`${label}: dispatching uilc:ask did not open the drawer`);
+    const answered = await page
+      .waitForSelector('.chat-answer a[href="/write-up/"]', { timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!answered) fail(`${label}: the stubbed answer never rendered`);
+    const body = sent[0]?.body as { message?: unknown; history?: unknown } | undefined;
+    if (sent.length !== 1 || sent[0]?.method !== 'POST' || body?.message !== question || !Array.isArray(body.history)) {
+      fail(`${label}: expected one POST with the question, got ${JSON.stringify(sent)}`);
+    }
+    const shown = await page.$$eval('.chat-user', (els) => els.map((el) => el.textContent ?? ''));
+    if (shown.length !== 1 || !shown[0]?.includes(question)) fail(`${label}: the drawer shows ${JSON.stringify(shown)} as the reader's messages`);
+
+    // Closed, then an empty question: the drawer opens and nothing is posted.
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('[role="dialog"]', { hidden: true, timeout: 5000 });
+    await ask('');
+    const reopened = await page
+      .waitForSelector('[role="dialog"]', { visible: true, timeout: 5000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!reopened) fail(`${label}: an empty question did not open the drawer`);
+    await new Promise((r) => setTimeout(r, 300));
+    if (sent.length !== 1) fail(`${label}: an empty question posted, ${sent.length} requests in all`);
+    await page.evaluate(() => sessionStorage.clear());
+
+    if (errors.length > 0) fail(`${label}: script errors ${errors.join('; ')}`);
+    console.log(`  ${label}: opens the drawer and posts the question; an empty question only opens it`);
+  });
+}
+
 async function checkScreen(browser: Browser, build: string): Promise<void> {
   const route = `/screens/${build}/`;
   const expected = /<title>([^<]*)<\/title>/.exec(readFileSync(join(siteDist, 'screens', build, 'index.html'), 'utf8'))?.[1];
@@ -497,6 +572,7 @@ async function main(): Promise<void> {
     await checkChat(browser, '/', 375, 812, 'dark');
     await checkChat(browser, '/write-up/', 1440, 900, 'dark');
     await checkChat(browser, `/builds/${builds[0]}/`, 375, 812, 'light');
+    await checkAsk(browser, '/write-up/');
     if (withScreens) {
       console.log('screens');
       for (const build of builds) await checkScreen(browser, build);

@@ -68,7 +68,20 @@ async function ask(message: string, history: Entry[]): Promise<Entry> {
   }
 }
 
-export function ChatIsland({ initialOpen = false }: { initialOpen?: boolean }) {
+/**
+ * Any page may dispatch `new CustomEvent('uilc:ask', { detail: { question } })`
+ * on `window`. `main.ts` handles it until the island exists; from then on the
+ * island does. A non-empty question is sent as a message, and an empty one
+ * only opens the drawer.
+ */
+export const ASK_EVENT = 'uilc:ask';
+
+const questionOf = (event: Event): string => {
+  const question = (event as CustomEvent<{ question?: unknown } | null>).detail?.question;
+  return typeof question === 'string' ? question.trim() : '';
+};
+
+export function ChatIsland({ initialOpen = false, initialQuestion = '' }: { initialOpen?: boolean; initialQuestion?: string }) {
   const [open, setOpen] = useState(initialOpen);
   const [entries, setEntries] = useState<Entry[]>(() => (initialOpen ? readConversation() : []));
   const [draft, setDraft] = useState('');
@@ -123,6 +136,35 @@ export function ChatIsland({ initialOpen = false }: { initialOpen?: boolean }) {
     remember([...said, reply]);
     composer.current?.focus();
   };
+
+  // The page's question, if any, goes out once as the first message. A
+  // question that cannot go yet (a reply pending, no questions left) waits in
+  // the field instead of being dropped.
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
+  const offer = useCallback((question: string) => {
+    if (!question) return;
+    if (pendingRef.current || questionsLeft() === 0) setDraft(question.slice(0, MAX_CHARS));
+    else void sendRef.current(question);
+  }, []);
+
+  const askedInitial = useRef(false);
+  useEffect(() => {
+    if (askedInitial.current) return;
+    askedInitial.current = true;
+    offer(initialQuestion);
+  }, [initialQuestion, offer]);
+
+  useEffect(() => {
+    const onAsk = (event: Event) => {
+      setOpen(true);
+      offer(questionOf(event));
+    };
+    window.addEventListener(ASK_EVENT, onAsk);
+    return () => window.removeEventListener(ASK_EVENT, onAsk);
+  }, [offer]);
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
