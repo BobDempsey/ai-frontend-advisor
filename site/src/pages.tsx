@@ -23,6 +23,7 @@ import {
   budgetText,
   detailHref,
   esc,
+  FICTION_NOTE,
   frameworkLabel,
   handBuiltCount,
   kb,
@@ -377,6 +378,7 @@ function Scoreboard({ data, rel }: { data: SiteData; rel: string }) {
           size. Assembly kits ship fewer finished parts by design, so their hand built counts on the detail views read as
           the trade they make.
         </Note>
+        <Note>{FICTION_NOTE}</Note>
       </div>
       <CategoryCharts data={data} rel={rel} renderNote={caveat} />
     </div>
@@ -674,6 +676,7 @@ function Detail({ data, build, rel }: { data: SiteData; build: Build; rel: strin
             </a>
           </li>
         </ul>
+        <Note>{FICTION_NOTE}</Note>
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Delta, gzipped" value={kb(bundle.deltaGzipKb)} />
@@ -896,6 +899,8 @@ function About({ data, rel }: { data: SiteData; rel: string }) {
           <p>
             The {count} screens under this site are the real applications, built and served as they were measured. The
             comparison itself, the fixture, the criteria and the measuring scripts live in the repository.
+          </p>
+          <p>{FICTION_NOTE}
           </p>
         </>
       ),

@@ -12,7 +12,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Textarea } from '../components/ui/textarea';
 import { FRAMEWORK_LABEL, type SiteData } from '../data';
-import { detailHref } from '../html';
+import { FICTION_NOTE, detailHref } from '../html';
 import { STARTING_PROMPTS } from './prompts';
 
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
@@ -197,7 +197,7 @@ function Screens() {
           </li>
         ))}
       </ul>
-      <p className="text-sm text-muted-foreground">A screenshot opens at full size.</p>
+      <p className="max-w-[65ch] text-sm text-muted-foreground text-pretty">A screenshot opens at full size. {FICTION_NOTE}</p>
     </section>
   );
 }

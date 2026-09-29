@@ -24,6 +24,15 @@ export function ms(value: number): string {
 
 export const REPO_URL = 'https://github.com/BobDempsey/ai-frontend-advisor';
 
+/**
+ * The demo data notice. The 240 tickets come from a seeded generator, so the
+ * subjects, names and dates on every screen are invented, and a screen keeps
+ * nothing a visitor does. It appears wherever the site sends a reader to a
+ * screen or shows one.
+ */
+export const FICTION_NOTE =
+  'The tickets on every screen are made up: 240 rows from a seeded generator, the same rows for every library. Nothing you type into a screen is saved, and the next visitor sees the same data you do.';
+
 /** `rel` is the relative path from a page back to the site root, `''` on the root page. */
 export function detailHref(rel: string, build: string): string {
   return `${rel}builds/${build}/`;
