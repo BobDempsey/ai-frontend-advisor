@@ -196,7 +196,7 @@ These are not settled and each is an owner call.
 
 1. **Does the site route client side or ship separate HTML files per view?** Separate files are simpler to host and to audit, and they cost a page load between views.
 2. **Does `publish` deploy, or upload an artifact?** Section 10 leaves the output host neutral, so this can be answered after the site exists.
-3. **Do the committed first render numbers get retaken against the deployed site?** They should, and doing so means a rescore commit after the first deploy, which touches `results/`. Whoever deploys owns that.
+3. ~~**Do the committed first render numbers get retaken against the deployed site?**~~ **Settled.** They were, on 2026-09-16 against the first domain and again on 2026-09-29 against `ai-frontend-advisor.bobdempsey83.com`. Each retake is a rescore commit touching `results/`, and whoever deploys owns it.
 4. **Does CI check the screenshots are current?** A leg that recaptures and diffs would catch a stale image the way CI already catches a regenerated `tickets.json`. It also needs Chrome in the publish job and it will flake on font rendering differences between a runner and this Windows machine, which is probably why the answer is no.
 
 Settled on 2026-09-09: the screens are embedded as committed screenshots, thumbnail sized on the scoreboard and full sized on a build detail view, with the live applications one click behind them. Eight iframes on one route was the alternative and it was rejected on page weight.

@@ -1,6 +1,6 @@
 # Handoff: UI library comparison
 
-**Updated:** 2026-09-29, twice (the site styled to the portfolio project spec, section 21; the README now leads with the advisor, sections 2 and 6). Previously 2026-09-17, ten times (tables in drawer answers now render, section 17; sections 2, 6 and 20 caught up with the finished advisor build; OpenAI spend cap set, section 20; rate limits back on at 20 per IP per 10 minutes, sections 17 and 20; both advisor slices merged and live, section 20; Phase 0 of the advisor build plan, section 20; drift fixes in sections 5, 6, 16, 19 and 20; advisor plans and paused rate limits, section 20; the rename, section 19; drift fixes in sections 2, 6 and 14), 2026-09-16, twice (Vercel Web Analytics, section 18), 2026-09-08, 2026-09-04, 2026-09-03.
+**Updated:** 2026-09-29, three times (first render retaken against the deployed site, section 22; the site styled to the portfolio project spec, section 21; the README now leads with the advisor, sections 2 and 6). Previously 2026-09-17, ten times (tables in drawer answers now render, section 17; sections 2, 6 and 20 caught up with the finished advisor build; OpenAI spend cap set, section 20; rate limits back on at 20 per IP per 10 minutes, sections 17 and 20; both advisor slices merged and live, section 20; Phase 0 of the advisor build plan, section 20; drift fixes in sections 5, 6, 16, 19 and 20; advisor plans and paused rate limits, section 20; the rename, section 19; drift fixes in sections 2, 6 and 14), 2026-09-16, twice (Vercel Web Analytics, section 18), 2026-09-08, 2026-09-04, 2026-09-03.
 
 ## 1. What this is
 
@@ -389,3 +389,13 @@ The user pointed at `docs/portfolio-project-spec.md` in the sibling repo `C:\cod
 **Verified 2026-09-29.** `pnpm typecheck`, `pnpm test:api` (51 tests), `pnpm site:build && pnpm site:screens` and `pnpm site:check` all pass, `results/*.json` hashed identical before and after, CI run `36627273168` is green, and Vercel deployed `a697f15` to production, where `/about/` answers 200 and the landing page serves the glow and the closing band.
 
 **The demo data notice, `f014082`.** The portfolio spec asks an app to say when its data is fictional, and only the README did. `FICTION_NOTE` in `site/src/html.ts` is one sentence, shown on the landing page's screenshot band, the About page, the scoreboard's notes and every build detail view next to the link that opens a live screen. Nothing under `builds/` was touched, deliberately: a word added there moves `linesOfAppCode` and costs a rescore.
+
+## 22. First render retaken, 2026-09-29
+
+Site spec open decision 3 asked for the render numbers to be retaken against the deployed site, and `2210af4` does it: `pnpm lighthouse --all --url https://ai-frontend-advisor.bobdempsey83.com`, then `pnpm measure` for all eight.
+
+The decision was already half answered. The 2026-09-16 set had been taken against the deployed site too, under the old domain, so this is a retake rather than a first measurement, and the numbers barely moved: Headless UI 1378 to 1373, shadcn/ui 1390 to 1389, Material UI 1526 to 1519, Chakra UI 1653 to 1650, Vuetify 1741 to 1731, Ant Design 2277 to 2272, with PrimeVue and Quasar unchanged. The order is the same, the spread is still about 900 ms, and nothing but `lighthouseFcpMsMedian` changed in `results/`.
+
+What had to follow the numbers, and will again next time: the median column in `README.md` and in the write-up's "Time to first render" table, the date and domain in the two paragraphs under that table, the date in `renderCaveat()` in `site/src/html.ts`, and `api/_lib/notes.test.ts`, which pins one real figure (`1373 ms`) to prove its parser reads the grounding.
+
+`pnpm typecheck`, `pnpm test:api` (51 tests), `pnpm fixture:check`, `pnpm site:build && pnpm site:screens` and `pnpm site:check` all pass after it.
