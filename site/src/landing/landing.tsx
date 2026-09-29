@@ -25,12 +25,14 @@ export function countWord(n: number): string {
 function Hero({ data }: { data: SiteData }) {
   const count = countWord(data.builds.length);
   return (
-    <div className="max-w-2xl min-w-0 space-y-6">
+    <div className="relative max-w-2xl min-w-0 space-y-6">
+      {/* Decoration only: the accent wash behind the question box. */}
+      <div aria-hidden="true" className="hero-glow pointer-events-none absolute -top-24 -left-24 -z-10 size-96 rounded-full" />
       <div className="space-y-4">
         <h1 id="landing-title" className="font-heading text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
           Find the front-end library that fits your project
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="max-w-[65ch] text-lg text-pretty text-muted-foreground">
           The answers come from {count} UI libraries, each built and measured on the same screen.
         </p>
       </div>
@@ -49,7 +51,7 @@ function Hero({ data }: { data: SiteData }) {
           />
           <div className="flex items-center justify-between gap-3 border-t px-3 py-2">
             <p className="text-xs text-muted-foreground">Enter sends, Shift+Enter adds a line</p>
-            <Button type="submit" size="lg" className="px-3">
+            <Button type="submit" size="lg" className="bg-brand px-3 text-brand-foreground hover:bg-brand/90">
               Ask
               <ArrowUp aria-hidden="true" data-icon="inline-end" />
             </Button>
@@ -140,14 +142,17 @@ function HowItWorks() {
       <h2 id="how-title" className="font-heading text-xl font-semibold tracking-tight">
         How it works
       </h2>
-      <ol className="grid gap-6 sm:grid-cols-3">
+      <ol className="grid gap-4 sm:grid-cols-3">
         {STEPS.map((step, i) => (
-          <li key={step.title} className="space-y-1.5 border-t-2 border-foreground pt-3">
-            <p className="font-mono text-sm text-muted-foreground" aria-hidden="true">
+          <li key={step.title} className="lift reveal rounded-xl border bg-card p-5 space-y-2">
+            <p
+              aria-hidden="true"
+              className="inline-flex size-7 items-center justify-center rounded-full bg-brand font-mono text-sm font-semibold text-brand-foreground"
+            >
               {String(i + 1).padStart(2, '0')}
             </p>
             <h3 className="font-semibold">{step.title}</h3>
-            <p className="text-muted-foreground">{step.text}</p>
+            <p className="max-w-[65ch] text-muted-foreground text-pretty">{step.text}</p>
           </li>
         ))}
       </ol>
@@ -155,9 +160,80 @@ function HowItWorks() {
   );
 }
 
+/**
+ * Two real screenshots of the running thing, one of the advisor answering and
+ * one of a build's screen. Each opens full size, because a screen shot is
+ * unreadable at page width. They carry no figure the page does not say in
+ * words, and the landing page still shows no measured number.
+ */
+const SHOTS = [
+  {
+    href: '/shots/advisor-intake.webp',
+    src: '/shots/advisor-intake.webp',
+    alt: 'The advisor drawer asking about framework, bundle weight, accessibility and how finished the components should be',
+    caption: 'The advisor asks about your project before it names anything.',
+  },
+  {
+    href: '/screenshots/react-shadcn-1440.webp',
+    src: '/screenshots/react-shadcn-1440.webp',
+    alt: 'The tickets screen built with shadcn/ui, at 1440 pixels wide, with its filters, table and pagination',
+    caption: 'The screen every library built, here in shadcn/ui. All of them are live on this site.',
+  },
+];
+
+function Screens() {
+  return (
+    <section aria-labelledby="screens-title" className="space-y-4">
+      <h2 id="screens-title" className="font-heading text-xl font-semibold tracking-tight">
+        What you are looking at
+      </h2>
+      <ul role="list" className="grid gap-4 sm:grid-cols-2">
+        {SHOTS.map((shot) => (
+          <li key={shot.src} className="lift reveal overflow-hidden rounded-xl border bg-card">
+            <a href={shot.href} className="block">
+              <img src={shot.src} alt={shot.alt} loading="lazy" decoding="async" className="block w-full bg-muted object-cover" />
+            </a>
+            <p className="max-w-[65ch] border-t px-4 py-3 text-sm text-muted-foreground text-pretty">{shot.caption}</p>
+          </li>
+        ))}
+      </ul>
+      <p className="text-sm text-muted-foreground">A screenshot opens at full size.</p>
+    </section>
+  );
+}
+
+/** The band that closes the page, so it ends on the next step rather than trailing off. */
+function NextStep() {
+  return (
+    <section aria-labelledby="next-title" className="reveal rounded-xl border bg-muted/40 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h2 id="next-title" className="font-heading text-xl font-semibold tracking-tight">
+            Ready to pick one?
+          </h2>
+          <p className="max-w-[65ch] text-muted-foreground text-pretty">
+            Describe your project at the top of this page, or read how the comparison was run.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="#landing-question"
+            className="inline-flex h-10 items-center rounded-md bg-brand px-5 text-sm font-medium text-brand-foreground hover:bg-brand/90"
+          >
+            Ask the advisor
+          </a>
+          <a href="about/" className="inline-flex h-10 items-center rounded-md border px-5 text-sm font-medium hover:bg-muted">
+            How this works
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Libraries({ data }: { data: SiteData }) {
   return (
-    <section aria-labelledby="libraries-title" className="space-y-4">
+    <section aria-labelledby="libraries-title" className="reveal space-y-4">
       <h2 id="libraries-title" className="font-heading text-xl font-semibold tracking-tight">
         The {countWord(data.builds.length)} libraries
       </h2>
@@ -191,7 +267,7 @@ function Evidence() {
     { href: 'spec/', title: 'Screen spec', text: 'What every build was held to.' },
   ];
   return (
-    <section aria-labelledby="evidence-title" className="space-y-4">
+    <section aria-labelledby="evidence-title" className="reveal space-y-4">
       <h2 id="evidence-title" className="font-heading text-xl font-semibold tracking-tight">
         Read the evidence
       </h2>
@@ -223,8 +299,10 @@ export function Landing({ data }: { data: SiteData }) {
         <Sources data={data} />
       </section>
       <HowItWorks />
+      <Screens />
       <Libraries data={data} />
       <Evidence />
+      <NextStep />
     </div>
   );
 }

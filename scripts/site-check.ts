@@ -20,8 +20,8 @@
  * - a route scrolls sideways at 375px wide
  * - the first scoreboard row's numbers, on `/results/`, sit below the fold at
  *   1440x900
- * - a focused control on the landing page, the scoreboard, a detail view or
- *   the write-up has no visible outline
+ * - a focused control on the landing page, the scoreboard, a detail view,
+ *   the write-up or the About page has no visible outline
  * - the landing page (advisor spec section 11) loses its hero, its question
  *   box or its starting prompts, shows a bundle number or a chart, fails axe
  *   or scrolls sideways at 1440 or 375 in either scheme, does not hand a
@@ -939,7 +939,7 @@ async function main(): Promise<void> {
     chrome = await launch({ chromeFlags: ['--headless=new', '--no-sandbox'] });
     browser = await puppeteer.connect({ browserURL: `http://127.0.0.1:${chrome.port}` });
 
-    const routes = ['/', '/results/', ...builds.map((b) => `/builds/${b}/`), '/write-up/', '/spec/'];
+    const routes = ['/', '/results/', ...builds.map((b) => `/builds/${b}/`), '/write-up/', '/spec/', '/about/'];
     console.log('axe-core, assets, and sideways scroll');
     for (const route of routes) await checkRoute(browser, route);
     console.log('fold at 1440x900');
@@ -949,7 +949,7 @@ async function main(): Promise<void> {
     console.log('theme without script');
     await checkNoScript(browser);
     console.log('keyboard');
-    for (const route of ['/', '/results/', `/builds/${builds[0]}/`, '/write-up/']) await checkKeyboard(browser, route);
+    for (const route of ['/', '/results/', `/builds/${builds[0]}/`, '/write-up/', '/about/']) await checkKeyboard(browser, route);
     console.log('landing page');
     for (const [width, height] of [
       [1440, 900],

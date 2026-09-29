@@ -1,6 +1,6 @@
 /*
  * The site's one stylesheet, compiled by Tailwind at build time. The tokens
- * are shadcn/ui's neutral theme with three site changes, each marked below.
+ * are shadcn/ui's neutral theme with five site changes, each marked below.
  * Light everywhere except the landing page and the scoreboard, which follow
  * the reader's system scheme and their toggle (site spec section 7).
  */
@@ -29,6 +29,8 @@
 }
 
 @theme inline {
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand: var(--brand);
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --color-chart-5: var(--chart-5);
@@ -94,6 +96,14 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  /*
+   * Site change: one accent, site spec section 8. It carries interface
+   * chrome only, never data, so it is a violet that neither framework color
+   * uses. 5.3:1 against --background as text, and --brand-foreground rides
+   * on top of it as a fill.
+   */
+  --brand: oklch(0.47 0.2 295);
+  --brand-foreground: oklch(0.985 0 0);
   --radius: 0.625rem;
 
   @variant dark {
@@ -121,6 +131,8 @@
     --chart-3: oklch(0.439 0 0);
     --chart-4: oklch(0.371 0 0);
     --chart-5: oklch(0.269 0 0);
+    --brand: oklch(0.78 0.14 295);
+    --brand-foreground: oklch(0.205 0 0);
   }
 }
 
@@ -145,4 +157,52 @@
 :focus-visible {
   outline: 3px solid var(--foreground);
   outline-offset: 2px;
+}
+
+/*
+ * Site change: decoration only, and only where the reader has not asked for
+ * less motion. Nothing moves on first paint: the reveal runs off the scroll
+ * position through `animation-timeline`, so an element already in view when
+ * the page loads is at the end of its range and simply shows. No script, no
+ * observer. A browser without `view()` gets the finished state. The reveal
+ * moves and never fades: text held at a partial opacity while it enters is
+ * text a contrast check reads as unreadable, and it is unreadable.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .lift {
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+  }
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px -12px color-mix(in oklab, var(--foreground) 45%, transparent);
+  }
+
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: site-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}
+
+@keyframes site-reveal {
+  from {
+    transform: translateY(14px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/*
+ * The hero glow. A blurred wash of the accent behind the question box, drawn
+ * on a decorative element so no content sits on top of a gradient.
+ */
+.hero-glow {
+  background: radial-gradient(60% 70% at 30% 30%, color-mix(in oklab, var(--brand) 38%, transparent), transparent 70%);
+  filter: blur(56px);
 }

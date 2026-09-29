@@ -12,7 +12,8 @@ import type { BuildResult } from '@uilc/harness';
 import { Moon, Sun } from 'lucide-react';
 import { CategoryCharts } from './charts';
 import { KindBadge, OverBudget, RenderNoteRef, SectionHeading, linkClass } from './components/site';
-import { Button } from './components/ui/button';
+import { cn } from 'cn';
+import { Button, buttonVariants } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Separator } from './components/ui/separator';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table';
@@ -40,7 +41,7 @@ export interface Page {
   title: string;
   description: string;
   /** Which nav item is current. */
-  nav: 'advisor' | 'results' | 'write-up' | 'spec' | 'build';
+  nav: 'advisor' | 'results' | 'write-up' | 'spec' | 'build' | 'about';
   /** HTML for the main landmark. */
   body: string;
   /**
@@ -835,6 +836,139 @@ export function spec(data: SiteData): Page {
   };
 }
 
+/* About */
+
+/**
+ * The About page at `/about/`, site spec section 7 and the portfolio project
+ * spec. Plain language, no figure typed by hand: every number a reader wants
+ * is a link away on `/results/`. Light like every view but the landing page
+ * and the scoreboard.
+ */
+function About({ data, rel }: { data: SiteData; rel: string }) {
+  const count = countWord(data.builds.length);
+  const sections = [
+    {
+      id: 'about-what',
+      title: 'What this is',
+      body: (
+        <>
+          <p>
+            An AI advisor that helps you pick a front-end UI library. It answers from one controlled comparison: {count} UI
+            libraries each built the same tickets screen, and every build was measured the same way for bundle size,
+            accessibility defaults, ergonomics and first render.
+          </p>
+          <p>
+            It names no overall winner and it ranks nothing. When you describe your project it can order a short list of two
+            or three libraries against the needs you state, and it says which need decided the order.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'about-how',
+      title: 'How an answer is made',
+      body: (
+        <>
+          <p>
+            Your question goes to a serverless function, which calls OpenAI with a system prompt carrying the write-up, the
+            screen spec, every build&rsquo;s result file and a short note per build about a problem it hit. The model key never
+            reaches your browser, and the model is given nothing else to read.
+          </p>
+          <p>
+            Every figure an answer quotes has to appear in those files. A test fails the build if the notes hold a figure the
+            results and the write-up do not, and a fixed set of questions is run against the live model by hand, where a reply
+            fails if it invents a figure, names a winner, lists too many picks, or skips saying so when a question goes past
+            the data.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'about-stack',
+      title: 'What it is built from',
+      body: (
+        <>
+          <p>
+            React, TypeScript, Vite, Tailwind CSS and shadcn/ui, rendered to static HTML at build time. Nothing on these pages
+            hydrates. The chat drawer is the one piece of the site that ships React to your browser, and it downloads only
+            when you reach for it.
+          </p>
+          <p>
+            The {count} screens under this site are the real applications, built and served as they were measured. The
+            comparison itself, the fixture, the criteria and the measuring scripts live in the repository.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'about-limits',
+      title: 'What the data does not cover',
+      body: (
+        <>
+          <p>
+            The comparison is one screen, built once per library by one worker, at one point in time. It says nothing about a
+            library outside the {count}, about a framework other than React and Vue, or about server rendering.
+          </p>
+          <p>
+            The accessibility checks are automated, so they cover what a machine can see. No manual screen reader pass was
+            done, and colour contrast is not checked in that environment. First render is a median of Lighthouse runs from one
+            machine, so read the figures against each other rather than as absolute numbers.
+          </p>
+        </>
+      ),
+    },
+  ];
+  return (
+    <div className="space-y-10 pb-4">
+      <div className="space-y-3">
+        <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">About the advisor</h1>
+        <Lede>
+          What the advisor does, how it produces an answer, what the site is built from, and where the data stops.
+        </Lede>
+      </div>
+      <div className="grid gap-6 sm:grid-cols-2">
+        {sections.map((section) => (
+          <Card key={section.id} className="lift reveal" aria-labelledby={section.id}>
+            <CardHeader>
+              <CardTitle>
+                <h2 id={section.id} className="font-heading text-lg font-semibold tracking-tight">
+                  {section.title}
+                </h2>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="max-w-[65ch] space-y-3 text-muted-foreground text-pretty">{section.body}</CardContent>
+          </Card>
+        ))}
+      </div>
+      <Card className="reveal bg-muted/40">
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <p className="max-w-[65ch] text-pretty">Read the evidence yourself, or ask the advisor about your project.</p>
+          <div className="flex flex-wrap gap-2">
+            <a className={cn(buttonVariants({ size: 'lg' }), 'bg-brand text-brand-foreground hover:bg-brand/90')} href={rel || './'}>
+              Ask the advisor
+            </a>
+            <a className={cn(buttonVariants({ variant: 'outline', size: 'lg' }))} href={`${rel}results/`}>
+              See the results
+            </a>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export function about(data: SiteData): Page {
+  const path = 'about/index.html';
+  const rel = relFor(path);
+  return {
+    path,
+    title: 'About, AI frontend advisor',
+    description: 'What the advisor does, how an answer is produced, what the site is built from, and the limits of the data.',
+    nav: 'about',
+    body: renderToStaticMarkup(<About data={data} rel={rel} />),
+  };
+}
+
 export function allPages(data: SiteData): Page[] {
-  return [landing(data), scoreboard(data), ...data.builds.map((b) => detail(data, b)), writeUp(data), spec(data)];
+  return [landing(data), scoreboard(data), ...data.builds.map((b) => detail(data, b)), writeUp(data), spec(data), about(data)];
 }

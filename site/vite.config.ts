@@ -49,6 +49,9 @@ function fill(shell: string, page: Page): string {
     description: esc(page.description),
     nav: nav(page),
     home: relFor(page.path) || './',
+    about: `${relFor(page.path)}about/`,
+    // The footer's year comes from the render, which for a static site is the build.
+    year: String(new Date().getFullYear()),
     content: page.body,
     // Only the landing page and the scoreboard may turn dark, site spec section 7.
     htmlClass: page.theme === 'auto' ? 'theme-auto' : 'theme-light',

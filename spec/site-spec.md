@@ -108,7 +108,7 @@ Recapture is manual and deliberate, run as `pnpm screenshots`. A screenshot goin
 
 ## 7. The views
 
-Five, and no more without an owner deciding. The owner added the landing page on 2026-09-17 and moved the scoreboard from `/` to `/results/`.
+Six, and no more without an owner deciding. The owner added the landing page on 2026-09-17 and moved the scoreboard from `/` to `/results/`, and added the About page on 2026-09-29.
 
 **Landing page, `/`.** A chat-first page that leads with the advisor, specified in `advisor-spec.md` section 11. It shows no bundle numbers and no charts, and links to `/results/`.
 
@@ -126,6 +126,8 @@ The landing page and the scoreboard, and only those two, follow the reader's sys
 
 **Screens, `/screens/<build>/`.** The applications themselves, as section 6 builds them.
 
+**About, `/about/`.** Plain language: what the advisor does, how an answer is produced, what the site is built from, and the honest limits of the data. It states no figure the results and the write-up do not already carry, it stays light like every view other than the two above, and it is reached from the footer rather than the navbar, which keeps its four items. Added 2026-09-29 at the owner's request, to meet the portfolio project spec.
+
 The screen spec is published too, at `/spec/`, linked from the write-up's "What was held fixed" section. It is a fifth route only in the sense that a static file is.
 
 ## 8. How the numbers are shown
@@ -136,7 +138,7 @@ Four rules for those bars.
 
 The bundle chart shows delta, and total appears as a second, lighter bar behind it. The 180 KB budget line is drawn on the total scale and labeled, since that is what the budget applies to.
 
-Colors carry framework, React or Vue, and nothing else. No red for a high number. `react-antd` being over budget is stated in words and marked on the chart, and it is not painted as a failure, because it passes all 18 criteria.
+Colors carry framework, React or Vue, and nothing else, wherever a color stands for data. No red for a high number. The owner allowed one accent color for interface chrome on 2026-09-29, for the landing page's glow, its numbered chips, badges and the primary button. It carries no data meaning: it never appears in a chart, never marks a build, and never stands in for a word the page would otherwise say. `react-antd` being over budget is stated in words and marked on the chart, and it is not painted as a failure, because it passes all 18 criteria.
 
 Assembly kits are labeled on every view where a hand built count appears. Section 10 of the screen spec asks for this so that shadcn/ui and Headless UI read as the trade they are.
 
