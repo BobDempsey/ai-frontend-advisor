@@ -94,7 +94,7 @@ export function runsOf(builds: Build[]): string {
  * Plain text; React escapes it where it renders.
  */
 export function renderCaveat(builds: Build[]): string {
-  return `First render is the median of ${runsOf(builds)} Lighthouse runs, taken from one Windows machine against this deployed site on 2026-09-16. The figures are relative: Lighthouse throttles to a simulated mid-tier phone, and other hardware or networks would move the milliseconds.`;
+  return `First render is the median of ${runsOf(builds)} Lighthouse runs, taken from one Windows machine against this deployed site on 2026-09-29. The figures are relative: Lighthouse throttles to a simulated mid-tier phone, and other hardware or networks would move the milliseconds.`;
 }
 
 /** The budget as the screen spec writes it, a whole number of KB. */

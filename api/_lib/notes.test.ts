@@ -50,7 +50,7 @@ describe('figuresIn and figuresInResult', () => {
     const measured = measuredFigures(loadGrounding(repoRoot));
     expect(measured.has('233.87 KB')).toBe(true);
     expect(measured.has('247 KB')).toBe(true);
-    expect(measured.has('1378 ms')).toBe(true);
+    expect(measured.has('1373 ms')).toBe(true);
     expect(measured.has('233.8 KB')).toBe(false);
     expect(measured.has('12.5 KB')).toBe(false);
   });

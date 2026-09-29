@@ -148,22 +148,22 @@ One caveat on the imports column, and it matters. The measurement counts explici
 
 ## Time to first render
 
-Lighthouse first contentful paint on the deployed static build, median of five runs, taken by `pnpm lighthouse --url` against https://ui-library-comparison.bobdempsey83.com and read back into `results/` by `pnpm measure`.
+Lighthouse first contentful paint on the deployed static build, median of five runs, taken by `pnpm lighthouse --url` against https://ai-frontend-advisor.bobdempsey83.com and read back into `results/` by `pnpm measure`.
 
 | Library | Framework | Median FCP | Delta gzip |
 | --- | --- | --- | --- |
-| Headless UI | React | 1378 ms | 44.90 KB |
-| shadcn/ui | React | 1390 ms | 58.89 KB |
-| Material UI | React | 1526 ms | 79.76 KB |
+| Headless UI | React | 1373 ms | 44.90 KB |
+| shadcn/ui | React | 1389 ms | 58.89 KB |
+| Material UI | React | 1519 ms | 79.76 KB |
 | Quasar | Vue | 1565 ms | 91.71 KB |
-| Chakra UI | React | 1653 ms | 97.81 KB |
-| Vuetify | Vue | 1741 ms | 128.87 KB |
+| Chakra UI | React | 1650 ms | 97.81 KB |
+| Vuetify | Vue | 1731 ms | 128.87 KB |
 | PrimeVue | Vue | 1745 ms | 150.20 KB |
-| Ant Design | React | 2277 ms | 233.87 KB |
+| Ant Design | React | 2272 ms | 233.87 KB |
 
 The order is the bundle order, exactly. Nothing on this screen paints before its library parses, so first render is bundle size read through Lighthouse's mobile throttling rather than an independent finding. The useful figure is the spread: about 900 ms between the lightest build and the heaviest, on a simulated mid-tier phone, for eight screens a user cannot tell apart.
 
-Read these as relative. They were taken on 2026-09-16 from one Windows machine against the deployed site on Vercel, which serves compressed assets the way the bundle numbers are measured, and Lighthouse's mobile preset throttles CPU and network to a fixed profile. The first run for a build was sometimes up to 150 ms slower than the other four, which reads as a cold edge cache, and the median absorbs it. The ranking is stable even though the absolute milliseconds are not a claim about any real device. An earlier set taken against a local server ran 50 to 270 ms higher and gave the same order.
+Read these as relative. They were retaken on 2026-09-29 from one Windows machine against the deployed site on Vercel, after the rename moved it to ai-frontend-advisor.bobdempsey83.com, which serves compressed assets the way the bundle numbers are measured, and Lighthouse's mobile preset throttles CPU and network to a fixed profile. The first run for a build was sometimes up to 150 ms slower than the other four, which reads as a cold edge cache, and the median absorbs it. The ranking is stable even though the absolute milliseconds are not a claim about any real device. An earlier set taken against a local server ran 50 to 270 ms higher and gave the same order, and the 2026-09-16 set against the old domain sat within 10 ms of this one everywhere except Vuetify, which moved 10 ms.
 
 ## Picking one
 

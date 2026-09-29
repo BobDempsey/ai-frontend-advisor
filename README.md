@@ -53,14 +53,14 @@ All eight builds pass all 18 acceptance criteria. Sorted by bundle cost.
 
 | Library | Framework | Kind | Delta gzip | Total gzip | Median FCP | Custom code | Hand built |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Headless UI | React | assembly kit | 44.90 KB | 89.81 KB | 1378 ms | 6 | select, toast |
-| shadcn/ui | React | assembly kit | 58.89 KB | 103.80 KB | 1390 ms | 4 | modal, select, toast |
-| Material UI | React | suite | 79.76 KB | 124.67 KB | 1526 ms | 3 | toast |
+| Headless UI | React | assembly kit | 44.90 KB | 89.81 KB | 1373 ms | 6 | select, toast |
+| shadcn/ui | React | assembly kit | 58.89 KB | 103.80 KB | 1389 ms | 4 | modal, select, toast |
+| Material UI | React | suite | 79.76 KB | 124.67 KB | 1519 ms | 3 | toast |
 | Quasar | Vue | suite | 91.71 KB | 115.92 KB | 1565 ms | 6 | toast |
-| Chakra UI | React | suite | 97.81 KB | 142.72 KB | 1653 ms | 4 | none |
-| Vuetify | Vue | suite | 128.87 KB | 153.08 KB | 1741 ms | 6 | toast |
+| Chakra UI | React | suite | 97.81 KB | 142.72 KB | 1650 ms | 4 | none |
+| Vuetify | Vue | suite | 128.87 KB | 153.08 KB | 1731 ms | 6 | toast |
 | PrimeVue | Vue | suite | 150.20 KB | 174.41 KB | 1745 ms | 4 | toast |
-| Ant Design | React | suite | 233.87 KB | 278.78 KB | 2277 ms | 5 | toast |
+| Ant Design | React | suite | 233.87 KB | 278.78 KB | 2272 ms | 5 | toast |
 
 Delta is the total minus an empty app on the same framework, 44.91 KB for React and 24.21 KB for Vue, and it is the number the comparison is about. The 240 fixture rows load through a dynamic import and are excluded, as section 10 of the spec requires. Median FCP is Lighthouse first contentful paint, median of five runs against the deployed demos, written by `pnpm lighthouse --url` and read back by `pnpm measure`. Custom code counts how many of section 9's accessibility requirements the library did not supply.
 
